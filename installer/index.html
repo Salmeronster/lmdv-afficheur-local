@@ -494,7 +494,7 @@ if (-not $nodeOk) {
     try {
         $installer = "$env:TEMP\\node-installer.msi"
         Invoke-WebRequest -Uri 'https://nodejs.org/dist/v20.18.0/node-v20.18.0-x64.msi' -OutFile $installer
-        Start-Process msiexec.exe -ArgumentList "/i `"$installer`" /qn ADDLOCAL=ALL" -Wait -NoNewWindow
+        Start-Process msiexec.exe -ArgumentList "/i \`"$installer\`" /qn ADDLOCAL=ALL" -Wait -NoNewWindow
         Remove-Item $installer -Force
         $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [System.Environment]::GetEnvironmentVariable('Path', 'User')
         Write-OK "Node.js installe avec succes"
