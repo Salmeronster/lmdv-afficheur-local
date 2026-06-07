@@ -407,37 +407,14 @@
       return ok;
     }
 
-    async function testConnection() {
+    function testConnection() {
       if (!validate()) return;
-      const v = getValues();
-      const btn = document.getElementById('btn-test');
+      // Note : le test direct depuis le navigateur est bloque par CORS (politique Hiboutik).
+      // Les identifiants seront verifies au premier demarrage du serveur Node.js.
       const res = document.getElementById('test-result');
-      btn.innerHTML = '<span class="spinner"></span>Test en cours...';
-      btn.disabled = true;
-      res.className = 'test-result';
-      res.textContent = '';
-
-      try {
-        const auth = btoa(`${v.email}:${v.apiKey}`);
-        const url = `https://${v.account}.hiboutik.com/api/sales/?store_id=${v.storeId}`;
-        const r = await fetch(url, {
-          headers: { Authorization: `Basic ${auth}` },
-          signal: AbortSignal.timeout(8000)
-        });
-        if (r.ok) {
-          res.textContent = 'Connexion reussie ! Vos identifiants sont corrects.';
-          res.className = 'test-result ok';
-          markStep(2);
-        } else {
-          res.textContent = `Echec (HTTP ${r.status}) — verifiez vos identifiants Hiboutik.`;
-          res.className = 'test-result error';
-        }
-      } catch (e) {
-        res.textContent = `Impossible de contacter Hiboutik : ${e.message}`;
-        res.className = 'test-result error';
-      }
-      btn.innerHTML = 'Tester la connexion Hiboutik avant de continuer';
-      btn.disabled = false;
+      res.textContent = 'Identifiants enregistres. La connexion Hiboutik sera verifiee au demarrage du serveur.';
+      res.className = 'test-result ok';
+      markStep(2);
     }
 
     function markStep(n) {
@@ -461,8 +438,10 @@
       const a = document.createElement('a');
       a.href = url;
       a.download = 'install-lmdv.ps1';
+      a.style.display = 'none';
+      document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(url);
+      setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
 
       document.getElementById('form-block').style.display = 'none';
       document.getElementById('success-block').classList.add('visible');
