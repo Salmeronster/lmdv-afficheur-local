@@ -599,7 +599,7 @@ try {
 
 # --- 7. Creer start.bat ---
 Write-Step "Creation du raccourci de demarrage..."
-$batContent = "@echo off`r`ncd /d `"${INSTALL_DIR}`"`r`necho Demarrage LMDV Afficheur...`r`nnode server.js`r`npause"
+$batContent = "@echo off\`r\`ncd /d \`"${INSTALL_DIR}\`"\`r\`necho Demarrage LMDV Afficheur...\`r\`nnode server.js\`r\`npause"
 $batContent | Out-File -FilePath '${INSTALL_DIR}\\start.bat' -Encoding ASCII -Force
 
 # Raccourci bureau
@@ -620,7 +620,7 @@ Write-OK "IP LAN : $lanIP"
 
 # --- 9. Demarrer le serveur ---
 Write-Step "Demarrage du serveur LMDV..."
-Start-Process -FilePath 'cmd.exe' -ArgumentList "/c cd /d `"${INSTALL_DIR}`" && node server.js" -WindowStyle Normal
+Start-Process -FilePath 'cmd.exe' -ArgumentList "/c cd /d \`"${INSTALL_DIR}\`" && node server.js" -WindowStyle Normal
 
 Start-Sleep -Seconds 3
 
@@ -647,7 +647,7 @@ Write-Host "  Raccourci de demarrage cree sur le Bureau." -ForegroundColor Cyan
 Write-Host ""
 
 Read-Host "Appuyez sur Entree pour fermer"
-`;
+\`;
     }
   </script>
 </body>
