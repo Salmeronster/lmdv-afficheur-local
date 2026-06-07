@@ -407,14 +407,37 @@
       return ok;
     }
 
-    function testConnection() {
+    async function testConnection() {
       if (!validate()) return;
-      // Note : le test direct depuis le navigateur est bloque par CORS (politique Hiboutik).
-      // Les identifiants seront verifies au premier demarrage du serveur Node.js.
+      const v = getValues();
+      const btn = document.getElementById('btn-test');
       const res = document.getElementById('test-result');
-      res.textContent = 'Identifiants enregistres. La connexion Hiboutik sera verifiee au demarrage du serveur.';
-      res.className = 'test-result ok';
-      markStep(2);
+      btn.innerHTML = '<span class="spinner"></span>Test en cours...';
+      btn.disabled = true;
+      res.className = 'test-result';
+      res.textContent = '';
+
+      try {
+        const auth = btoa(`${v.email}:${v.apiKey}`);
+        const url = `https://${v.account}.hiboutik.com/api/sales/?store_id=${v.storeId}`;
+        const r = await fetch(url, {
+          headers: { Authorization: `Basic ${auth}` },
+          signal: AbortSignal.timeout(8000)
+        });
+        if (r.ok) {
+          res.textContent = 'Connexion reussie ! Vos identifiants sont corrects.';
+          res.className = 'test-result ok';
+          markStep(2);
+        } else {
+          res.textContent = `Echec (HTTP ${r.status}) — verifiez vos identifiants Hiboutik.`;
+          res.className = 'test-result error';
+        }
+      } catch (e) {
+        res.textContent = `Impossible de contacter Hiboutik : ${e.message}`;
+        res.className = 'test-result error';
+      }
+      btn.innerHTML = 'Tester la connexion Hiboutik avant de continuer';
+      btn.disabled = false;
     }
 
     function markStep(n) {
@@ -438,10 +461,8 @@
       const a = document.createElement('a');
       a.href = url;
       a.download = 'install-lmdv.ps1';
-      a.style.display = 'none';
-      document.body.appendChild(a);
       a.click();
-      setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+      URL.revokeObjectURL(url);
 
       document.getElementById('form-block').style.display = 'none';
       document.getElementById('success-block').classList.add('visible');
@@ -455,11 +476,25 @@
       const GITHUB_ZIP = 'https://github.com/Salmeronster/lmdv-afficheur-local/archive/refs/heads/main.zip';
       const INSTALL_DIR = 'C:\\LMDV\\afficheur';
       const PORT = v.port;
-
-      return `# ============================================================
+      // Lire le template depuis le DOM (évite les conflits backtick JS/PowerShell)
+      let tpl = document.getElementById('ps1-tpl').textContent;
+      // Substituer les tokens
+      tpl = tpl
+        .replace(/__GITHUB_ZIP__/g, GITHUB_ZIP)
+        .replace(/__INSTALL_DIR__/g, INSTALL_DIR)
+        .replace(/__PORT__/g, PORT)
+        .replace(/__ACCOUNT__/g, escapePS1(v.account))
+        .replace(/__EMAIL__/g, escapePS1(v.email))
+        .replace(/__APIKEY__/g, escapePS1(v.apiKey))
+        .replace(/__STOREID__/g, v.storeId)
+        .replace(/__DATE__/g, new Date().toLocaleDateString('fr-FR'));
+      return tpl;
+    }
+  </script>
+<script id="ps1-tpl" type="text/plain"># ============================================================
 # LMDV Afficheur Local — Script d'installation automatique
-# Genere le ${new Date().toLocaleDateString('fr-FR')}
-# Boutique : ${escapePS1(v.account)}.hiboutik.com
+# Genere le __DATE__
+# Boutique : __ACCOUNT__.hiboutik.com
 # ============================================================
 # Execution : clic droit -> Executer avec PowerShell (en tant qu'Administrateur)
 # ============================================================
@@ -494,7 +529,7 @@ if (-not $nodeOk) {
     try {
         $installer = "$env:TEMP\\node-installer.msi"
         Invoke-WebRequest -Uri 'https://nodejs.org/dist/v20.18.0/node-v20.18.0-x64.msi' -OutFile $installer
-        Start-Process msiexec.exe -ArgumentList "/i \`"$installer\`" /qn ADDLOCAL=ALL" -Wait -NoNewWindow
+        Start-Process msiexec.exe -ArgumentList "/i `"$installer`" /qn ADDLOCAL=ALL" -Wait -NoNewWindow
         Remove-Item $installer -Force
         $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [System.Environment]::GetEnvironmentVariable('Path', 'User')
         Write-OK "Node.js installe avec succes"
@@ -507,16 +542,16 @@ if (-not $nodeOk) {
 }
 
 # --- 2. Creer le dossier d'installation ---
-Write-Step "Preparation du dossier d'installation : ${INSTALL_DIR}"
-if (-not (Test-Path '${INSTALL_DIR}')) {
-    New-Item -ItemType Directory -Path '${INSTALL_DIR}' -Force | Out-Null
+Write-Step "Preparation du dossier d'installation : __INSTALL_DIR__"
+if (-not (Test-Path '__INSTALL_DIR__')) {
+    New-Item -ItemType Directory -Path '__INSTALL_DIR__' -Force | Out-Null
 }
 
 # --- 3. Telecharger et extraire l'application ---
 Write-Step "Telechargement de LMDV Afficheur Local..."
 $zipPath = "$env:TEMP\\lmdv-afficheur.zip"
 try {
-    Invoke-WebRequest -Uri '${GITHUB_ZIP}' -OutFile $zipPath
+    Invoke-WebRequest -Uri '__GITHUB_ZIP__' -OutFile $zipPath
     Write-OK "Telechargement termine"
 } catch {
     Write-Err "Impossible de telecharger l'application : $_"
@@ -531,23 +566,23 @@ if (Test-Path $extractTemp) { Remove-Item $extractTemp -Recurse -Force }
 Expand-Archive -Path $zipPath -DestinationPath $extractTemp -Force
 $subDir = Get-ChildItem $extractTemp | Where-Object { $_.PSIsContainer } | Select-Object -First 1
 if ($subDir) {
-    Copy-Item "$($subDir.FullName)\\*" -Destination '${INSTALL_DIR}' -Recurse -Force
+    Copy-Item "$($subDir.FullName)\\*" -Destination '__INSTALL_DIR__' -Recurse -Force
 } else {
-    Copy-Item "$extractTemp\\*" -Destination '${INSTALL_DIR}' -Recurse -Force
+    Copy-Item "$extractTemp\\*" -Destination '__INSTALL_DIR__' -Recurse -Force
 }
 Remove-Item $zipPath -Force
 Remove-Item $extractTemp -Recurse -Force
-Write-OK "Application extraite dans ${INSTALL_DIR}"
+Write-OK "Application extraite dans __INSTALL_DIR__"
 
 # --- 4. Ecrire config.json ---
 Write-Step "Configuration de la boutique..."
 $configJson = @'
 {
   "hiboutik": {
-    "account": "${escapePS1(v.account)}",
-    "email": "${escapePS1(v.email)}",
-    "api_key": "${escapePS1(v.apiKey)}",
-    "store_id": ${v.storeId}
+    "account": "__ACCOUNT__",
+    "email": "__EMAIL__",
+    "api_key": "__APIKEY__",
+    "store_id": __STOREID__
   },
   "display": {
     "sale_duration_seconds": 45,
@@ -563,16 +598,16 @@ $configJson = @'
     "video_path": ""
   },
   "server": {
-    "port": ${PORT}
+    "port": __PORT__
   }
 }
 '@
-$configJson | Out-File -FilePath '${INSTALL_DIR}\\config.json' -Encoding UTF8 -Force
+$configJson | Out-File -FilePath '__INSTALL_DIR__\\config.json' -Encoding UTF8 -Force
 Write-OK "config.json cree"
 
 # --- 5. npm install ---
 Write-Step "Installation des dependances Node.js (npm install)..."
-Push-Location '${INSTALL_DIR}'
+Push-Location '__INSTALL_DIR__'
 try {
     & npm install --loglevel=error
     Write-OK "Dependances installees"
@@ -585,29 +620,29 @@ try {
 Pop-Location
 
 # --- 6. Ouvrir le pare-feu Windows ---
-Write-Step "Configuration du pare-feu Windows (port ${PORT})..."
+Write-Step "Configuration du pare-feu Windows (port __PORT__)..."
 try {
     $ruleName = "LMDV Afficheur Local"
     $existing = Get-NetFirewallRule -DisplayName $ruleName 2>$null
     if ($existing) { Remove-NetFirewallRule -DisplayName $ruleName }
-    New-NetFirewallRule -DisplayName $ruleName -Direction Inbound -Protocol TCP -LocalPort ${PORT} -Action Allow | Out-Null
-    Write-OK "Regle pare-feu creee (port ${PORT})"
+    New-NetFirewallRule -DisplayName $ruleName -Direction Inbound -Protocol TCP -LocalPort __PORT__ -Action Allow | Out-Null
+    Write-OK "Regle pare-feu creee (port __PORT__)"
 } catch {
     Write-Host "[WARN] Impossible de configurer le pare-feu automatiquement." -ForegroundColor Yellow
-    Write-Host "       Autorisez manuellement le port ${PORT} dans le pare-feu Windows." -ForegroundColor Yellow
+    Write-Host "       Autorisez manuellement le port __PORT__ dans le pare-feu Windows." -ForegroundColor Yellow
 }
 
 # --- 7. Creer start.bat ---
 Write-Step "Creation du raccourci de demarrage..."
-$batContent = "@echo off\`r\`ncd /d \`"${INSTALL_DIR}\`"\`r\`necho Demarrage LMDV Afficheur...\`r\`nnode server.js\`r\`npause"
-$batContent | Out-File -FilePath '${INSTALL_DIR}\\start.bat' -Encoding ASCII -Force
+$batContent = "@echo off`r`ncd /d `"__INSTALL_DIR__`"`r`necho Demarrage LMDV Afficheur...`r`nnode server.js`r`npause"
+$batContent | Out-File -FilePath '__INSTALL_DIR__\\start.bat' -Encoding ASCII -Force
 
 # Raccourci bureau
 $WshShell = New-Object -comObject WScript.Shell
 $desktopPath = [System.Environment]::GetFolderPath('Desktop')
 $shortcut = $WshShell.CreateShortcut("$desktopPath\\Demarrer Afficheur LMDV.lnk")
-$shortcut.TargetPath = '${INSTALL_DIR}\\start.bat'
-$shortcut.WorkingDirectory = '${INSTALL_DIR}'
+$shortcut.TargetPath = '__INSTALL_DIR__\\start.bat'
+$shortcut.WorkingDirectory = '__INSTALL_DIR__'
 $shortcut.Description = 'LMDV Afficheur Client de Caisse'
 $shortcut.Save()
 Write-OK "Raccourci bureau cree"
@@ -620,13 +655,13 @@ Write-OK "IP LAN : $lanIP"
 
 # --- 9. Demarrer le serveur ---
 Write-Step "Demarrage du serveur LMDV..."
-Start-Process -FilePath 'cmd.exe' -ArgumentList "/c cd /d \`"${INSTALL_DIR}\`" && node server.js" -WindowStyle Normal
+Start-Process -FilePath 'cmd.exe' -ArgumentList "/c cd /d `"__INSTALL_DIR__`" && node server.js" -WindowStyle Normal
 
 Start-Sleep -Seconds 3
 
 # Ouvrir l'admin dans le navigateur
 try {
-    Start-Process "http://localhost:${PORT}/admin"
+    Start-Process "http://localhost:__PORT__/admin"
 } catch {}
 
 # --- Resume final ---
@@ -635,11 +670,11 @@ Write-Host "  ╔═════════════════════
 Write-Host "  ║           Installation terminee avec succes !        ║" -ForegroundColor Green
 Write-Host "  ╠══════════════════════════════════════════════════════╣" -ForegroundColor Green
 Write-Host "  ║                                                      ║" -ForegroundColor Green
-Write-Host "  ║  Interface admin  : http://localhost:${PORT}/admin         ║" -ForegroundColor Green
-Write-Host "  ║  Afficheur tablette : http://${lanIP}:${PORT}/display    ║" -ForegroundColor Green
+Write-Host "  ║  Interface admin  : http://localhost:__PORT__/admin         ║" -ForegroundColor Green
+Write-Host "  ║  Afficheur tablette : http://${lanIP}:__PORT__/display    ║" -ForegroundColor Green
 Write-Host "  ║                                                      ║" -ForegroundColor Green
 Write-Host "  ║  Donnez cette URL a la tablette :                    ║" -ForegroundColor Green
-Write-Host "  ║  http://$($lanIP):${PORT}/display                        ║" -ForegroundColor Yellow
+Write-Host "  ║  http://$($lanIP):__PORT__/display                        ║" -ForegroundColor Yellow
 Write-Host "  ║                                                      ║" -ForegroundColor Green
 Write-Host "  ╚══════════════════════════════════════════════════════╝" -ForegroundColor Green
 Write-Host ""
@@ -647,8 +682,6 @@ Write-Host "  Raccourci de demarrage cree sur le Bureau." -ForegroundColor Cyan
 Write-Host ""
 
 Read-Host "Appuyez sur Entree pour fermer"
-\`;
-    }
-  </script>
+</script>
 </body>
 </html>
