@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LMDV — Administration</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+
+  <div class="layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <svg viewBox="0 0 120 32" fill="none" xmlns="http://www.w3.org/2000/svg" class="logo-svg">
+          <rect x="0" y="0" width="120" height="32" rx="4" fill="none"/>
+          <text x="4" y="23" font-family="Montserrat,sans-serif" font-weight="700" font-size="14" fill="#FF766C" letter-spacing="1">LMDV</text>
+          <text x="48" y="23" font-family="Montserrat,sans-serif" font-weight="300" font-size="10" fill="#8090b0" letter-spacing="0.5">Afficheur</text>
+        </svg>
+      </div>
+
+      <div class="sidebar-status">
+        <div class="status-row">
+          <span class="status-dot" id="polling-dot"></span>
+          <span class="status-label">Polling Hiboutik</span>
+        </div>
+        <div class="status-row">
+          <span class="status-count" id="clients-count">0</span>
+          <span class="status-label">tablette(s) connectée(s)</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-section="medias">
+          <span class="nav-icon">&#9654;</span>
+          <span>Médias idle</span>
+        </button>
+        <button class="nav-item" data-section="vente">
+          <span class="nav-icon">&#9776;</span>
+          <span>Affichage vente</span>
+        </button>
+        <button class="nav-item" data-section="boutique">
+          <span class="nav-icon">&#9881;</span>
+          <span>Boutique</span>
+        </button>
+        <button class="nav-item" data-section="apercu">
+          <span class="nav-icon">&#9654;</span>
+          <span>Aperçu tablette</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="btn-preview-small" id="btn-preview-sidebar">Simuler une vente</button>
+      </div>
+    </aside>
+
+    <!-- CONTENU -->
+    <main class="content">
+
+      <!-- === SECTION MEDIAS === -->
+      <section id="section-medias" class="admin-section active">
+        <div class="section-header">
+          <h2>Médias en attente de vente</h2>
+          <p class="section-desc">Images ou vidéo affichées sur la tablette entre les ventes</p>
+        </div>
+
+        <div class="card">
+          <div class="type-toggle">
+            <button class="toggle-btn active" data-type="slideshow">Slideshow d'images</button>
+            <button class="toggle-btn" data-type="video">Vidéo</button>
+          </div>
+
+          <!-- Slideshow -->
+          <div id="mode-slideshow" class="media-mode">
+            <div class="drop-zone" id="drop-zone-images">
+              <div class="drop-zone-icon">+</div>
+              <p>Glissez vos images ici</p>
+              <p class="drop-hint">JPG, PNG, WebP — ou cliquez pour parcourir</p>
+              <input type="file" id="file-input-images" accept=".jpg,.jpeg,.png,.webp,.gif" multiple class="file-input-hidden">
+            </div>
+            <div class="upload-progress-bar" id="upload-progress">
+              <div class="upload-progress-fill" id="upload-progress-fill"></div>
+            </div>
+
+            <div class="field-row">
+              <label>Durée par slide</label>
+              <div class="slider-row">
+                <input type="range" id="slide-duration" min="2" max="15" step="1" value="6">
+                <span id="slide-duration-val" class="slider-val">6s</span>
+              </div>
+            </div>
+
+            <div class="media-grid" id="media-grid"></div>
+          </div>
+
+          <!-- Vidéo -->
+          <div id="mode-video" class="media-mode hidden">
+            <div class="drop-zone" id="drop-zone-video">
+              <div class="drop-zone-icon">▶</div>
+              <p>Glissez votre vidéo ici</p>
+              <p class="drop-hint">MP4, WebM — ou cliquez pour parcourir</p>
+              <input type="file" id="file-input-video" accept=".mp4,.webm" class="file-input-hidden">
+            </div>
+            <video id="video-preview" class="video-preview hidden" controls muted></video>
+          </div>
+        </div>
+
+        <div class="section-actions">
+          <button class="btn-primary" id="btn-save-medias">Enregistrer</button>
+          <button class="btn-secondary" id="btn-preview-medias">Aperçu sur tablette</button>
+        </div>
+      </section>
+
+      <!-- === SECTION VENTE === -->
+      <section id="section-vente" class="admin-section">
+        <div class="section-header">
+          <h2>Affichage lors d'une vente</h2>
+          <p class="section-desc">Configurez ce qui s'affiche sur la tablette après chaque encaissement</p>
+        </div>
+
+        <div class="card">
+          <div class="field-group">
+            <div class="field-row toggle-row">
+              <label>Bloc participation concours</label>
+              <label class="toggle-switch">
+                <input type="checkbox" id="toggle-concours">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="field-row">
+              <label for="concours-url">URL du concours</label>
+              <input type="url" id="concours-url" class="input" placeholder="https://lmdv-concours.vercel.app">
+            </div>
+          </div>
+
+          <div class="field-row">
+            <label>Durée d'affichage de la vente</label>
+            <div class="slider-row">
+              <input type="range" id="sale-duration" min="15" max="120" step="5" value="45">
+              <span id="sale-duration-val" class="slider-val">45s</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-actions">
+          <button class="btn-primary" id="btn-save-vente">Enregistrer</button>
+          <button class="btn-secondary" id="btn-preview-vente">Simuler une vente</button>
+        </div>
+      </section>
+
+      <!-- === SECTION BOUTIQUE === -->
+      <section id="section-boutique" class="admin-section">
+        <div class="section-header">
+          <h2>Configuration boutique</h2>
+          <p class="section-desc">Identifiants Hiboutik et paramètres serveur</p>
+        </div>
+
+        <div class="card">
+          <div class="field-group">
+            <div class="field-row">
+              <label for="hib-account">Compte Hiboutik</label>
+              <input type="text" id="hib-account" class="input" placeholder="moncompte">
+            </div>
+            <div class="field-row">
+              <label for="hib-email">Email</label>
+              <input type="email" id="hib-email" class="input" placeholder="gerant@franchise.fr">
+            </div>
+            <div class="field-row">
+              <label for="hib-apikey">Clé API</label>
+              <div class="input-with-action">
+                <input type="password" id="hib-apikey" class="input" placeholder="••••••••••••">
+                <button class="btn-icon" id="btn-toggle-apikey" title="Afficher/masquer">👁</button>
+              </div>
+            </div>
+            <div class="field-row">
+              <label for="hib-storeid">Store ID</label>
+              <input type="number" id="hib-storeid" class="input" placeholder="1" min="1">
+            </div>
+            <div class="field-row">
+              <label for="server-port">Port serveur</label>
+              <input type="number" id="server-port" class="input" placeholder="3000" min="1024" max="65535">
+            </div>
+          </div>
+        </div>
+
+        <div class="section-actions">
+          <button class="btn-primary" id="btn-save-boutique">Enregistrer</button>
+          <button class="btn-secondary" id="btn-test-hiboutik">Tester la connexion</button>
+        </div>
+
+        <div id="test-result" class="test-result hidden"></div>
+      </section>
+
+      <!-- === SECTION APERCU === -->
+      <section id="section-apercu" class="admin-section">
+        <div class="section-header">
+          <h2>Aperçu tablette</h2>
+          <p class="section-desc">Visualisez l'afficheur en temps réel</p>
+        </div>
+
+        <div class="preview-wrapper">
+          <div class="preview-controls">
+            <button class="btn-primary" id="btn-preview-apercu">Simuler une vente</button>
+            <a href="/display" target="_blank" class="btn-link">Ouvrir en plein écran</a>
+          </div>
+          <div class="iframe-container">
+            <iframe src="/display?preview=false" id="display-iframe" title="Aperçu afficheur"></iframe>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Toast notifications -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <script src="/js/admin.js"></script>
+</body>
+</html>

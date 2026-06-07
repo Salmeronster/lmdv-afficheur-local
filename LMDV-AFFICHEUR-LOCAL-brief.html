@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LMDV Afficheur Local — Brief Technique</title>
+<link href="https://fonts.googleapis.com/css2?family=League+Gothic&family=Montserrat:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --cobalt:#19418d;--corail:#ff766c;--corail2:#ff6b2c;--vert:#a8d4b0;
+  --bg:#05090f;--card:#0b1420;--border:rgba(255,255,255,0.08);
+  --text:rgba(255,255,255,0.85);--muted:rgba(255,255,255,0.4);--mono:'JetBrains Mono',monospace
+}
+html{scroll-behavior:smooth}
+body{font-family:'Montserrat',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.6}
+.bg-glow{position:fixed;inset:0;z-index:-1;background:
+  radial-gradient(ellipse 60% 50% at 10% 15%,rgba(25,65,141,0.35),transparent 55%),
+  radial-gradient(ellipse 40% 40% at 92% 85%,rgba(255,118,108,0.06),transparent 50%)}
+
+nav{position:sticky;top:0;z-index:100;border-bottom:1px solid var(--border);background:rgba(5,9,15,0.9);backdrop-filter:blur(12px);padding:0 40px;display:flex;align-items:center;gap:32px;height:56px}
+.nav-logo{font-family:'League Gothic',sans-serif;font-size:18px;letter-spacing:.2em;text-transform:uppercase;white-space:nowrap}
+.nav-logo span{color:var(--corail)}
+.nav-links{display:flex;gap:20px;margin-left:auto}
+.nav-links a{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-decoration:none;transition:color .2s}
+.nav-links a:hover{color:var(--text)}
+
+.hero{padding:80px 40px 60px;max-width:1100px;margin:0 auto}
+.hero-tag{display:inline-flex;align-items:center;gap:8px;background:rgba(255,118,108,0.1);border:1px solid rgba(255,118,108,0.25);border-radius:999px;padding:4px 14px;font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--corail);margin-bottom:24px}
+.hero h1{font-family:'League Gothic',sans-serif;font-size:clamp(42px,6vw,80px);font-weight:400;line-height:1;text-transform:uppercase;letter-spacing:.02em;margin-bottom:16px}
+.hero h1 span{color:var(--corail)}
+.hero p{font-size:16px;color:var(--muted);max-width:600px;line-height:1.7;margin-bottom:36px}
+.hero-badges{display:flex;flex-wrap:wrap;gap:8px}
+.badge{padding:5px 12px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:.08em}
+.badge-blue{background:rgba(25,65,141,0.2);border:1px solid rgba(25,65,141,0.4);color:#8ab5e5}
+.badge-green{background:rgba(168,212,176,0.1);border:1px solid rgba(168,212,176,0.3);color:var(--vert)}
+.badge-orange{background:rgba(255,107,44,0.1);border:1px solid rgba(255,107,44,0.3);color:var(--corail2)}
+
+.section{max-width:1100px;margin:0 auto;padding:60px 40px}
+.section-title{font-family:'League Gothic',sans-serif;font-size:36px;font-weight:400;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.section-sub{font-size:13px;color:var(--muted);margin-bottom:36px}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-bottom:40px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;transition:border-color .2s}
+.card:hover{border-color:rgba(25,65,141,0.4)}
+.card-icon{font-size:22px;margin-bottom:12px}
+.card-title{font-size:14px;font-weight:700;margin-bottom:6px}
+.card-desc{font-size:12px;color:var(--muted);line-height:1.6}
+
+/* STATES */
+.states{display:flex;align-items:stretch;gap:0;margin:32px 0;background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.state-block{flex:1;padding:24px;position:relative}
+.state-block+.state-block{border-left:1px solid var(--border)}
+.state-block::after{content:'→';position:absolute;right:-10px;top:50%;transform:translateY(-50%);font-size:20px;color:var(--muted);z-index:2}
+.state-block:last-child::after{display:none}
+.state-label{font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.state-name{font-size:16px;font-weight:700;margin-bottom:8px}
+.state-items{font-size:11px;color:var(--muted);line-height:1.8}
+
+/* ADMIN LAYOUT MOCKUP */
+.admin-mockup{background:#0a0f1a;border:1px solid var(--border);border-radius:14px;overflow:hidden;margin:24px 0}
+.admin-topbar{background:#0d1525;border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:12px}
+.admin-dot{width:9px;height:9px;border-radius:50%}
+.admin-url{font-family:var(--mono);font-size:10px;color:var(--muted);margin-left:8px}
+.admin-body{display:grid;grid-template-columns:200px 1fr;min-height:360px}
+.admin-sidebar{background:#08101f;border-right:1px solid var(--border);padding:16px 0}
+.admin-menu-item{padding:10px 20px;font-size:11px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:8px;cursor:pointer;transition:all .15s}
+.admin-menu-item.active{background:rgba(25,65,141,0.15);color:#8ab5e5;border-left:2px solid #19418d}
+.admin-content{padding:24px}
+.admin-section-label{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+
+/* Drop zone */
+.drop-zone{border:2px dashed rgba(25,65,141,0.4);border-radius:10px;padding:28px;text-align:center;margin-bottom:16px;background:rgba(25,65,141,0.04);transition:all .2s}
+.drop-zone:hover{border-color:rgba(25,65,141,0.7);background:rgba(25,65,141,0.08)}
+.drop-zone-icon{font-size:28px;margin-bottom:8px}
+.drop-zone-label{font-size:12px;color:var(--muted)}
+.drop-zone-sub{font-size:10px;color:rgba(255,255,255,0.2);margin-top:4px}
+
+/* Media grid */
+.media-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+.media-thumb{aspect-ratio:16/9;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);position:relative;overflow:hidden}
+.media-thumb.active-thumb{border-color:rgba(25,65,141,0.6);background:rgba(25,65,141,0.1)}
+.media-badge{position:absolute;top:4px;left:4px;background:rgba(25,65,141,0.8);border-radius:4px;padding:2px 5px;font-size:8px;font-weight:700;color:#8ab5e5}
+.media-del{position:absolute;top:4px;right:4px;background:rgba(255,80,80,0.7);border-radius:4px;width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:9px;cursor:pointer}
+
+/* Toggle */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;margin-bottom:8px}
+.toggle-label{font-size:12px}
+.toggle-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.toggle-pill{width:36px;height:20px;background:rgba(25,65,141,0.6);border-radius:10px;position:relative;cursor:pointer}
+.toggle-pill::after{content:'';position:absolute;width:14px;height:14px;background:#fff;border-radius:50%;top:3px;right:3px;transition:transform .2s}
+.toggle-off .toggle-pill{background:rgba(255,255,255,0.15)}
+.toggle-off .toggle-pill::after{transform:translateX(-16px)}
+
+/* Slider */
+.slider-row{padding:10px 14px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;margin-bottom:8px}
+.slider-top{display:flex;justify-content:space-between;margin-bottom:6px}
+.slider-label{font-size:12px}
+.slider-val{font-size:12px;color:#8ab5e5;font-weight:700}
+.slider-track{height:4px;background:rgba(255,255,255,0.1);border-radius:2px;position:relative}
+.slider-fill{height:4px;background:var(--cobalt);border-radius:2px;width:55%}
+.slider-thumb{width:14px;height:14px;background:#fff;border-radius:50%;position:absolute;top:-5px;left:calc(55% - 7px)}
+
+/* Preview button */
+.btn-preview{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;background:rgba(168,212,176,0.1);border:1px solid rgba(168,212,176,0.3);border-radius:8px;color:var(--vert);font-size:12px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif;transition:all .2s}
+.btn-preview:hover{background:rgba(168,212,176,0.15)}
+.btn-save{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;background:rgba(25,65,141,0.3);border:1px solid rgba(25,65,141,0.5);border-radius:8px;color:#8ab5e5;font-size:12px;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif;transition:all .2s;margin-left:8px}
+
+/* CODE */
+.code-block{background:#000d1a;border:1px solid rgba(25,65,141,0.3);border-radius:10px;padding:20px 24px;font-family:var(--mono);font-size:12px;line-height:1.7;overflow-x:auto;margin:16px 0}
+.code-block .c-comment{color:#4a7a8a}
+.code-block .c-key{color:#8ab5e5}
+.code-block .c-val{color:#a8d4b0}
+.code-block .c-str{color:#ff766c}
+.code-block .c-cmd{color:var(--corail2)}
+
+/* STACK */
+.stack-table{width:100%;border-collapse:collapse;margin:16px 0}
+.stack-table th{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:8px 16px;text-align:left;border-bottom:1px solid var(--border)}
+.stack-table td{padding:10px 16px;font-size:12px;border-bottom:1px solid rgba(255,255,255,0.04)}
+.stack-table tr:last-child td{border-bottom:none}
+.td-tech{color:var(--vert);font-family:var(--mono)}
+
+.sep{border:none;border-top:1px solid var(--border);margin:0 40px}
+
+/* ROADMAP */
+.roadmap{display:flex;flex-direction:column;gap:10px;margin:20px 0}
+.roadmap-item{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card);border:1px solid var(--border);border-radius:8px}
+.roadmap-status{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.status-done{background:#a8d4b0}
+.status-todo{background:rgba(255,255,255,0.2)}
+.status-optional{background:var(--corail);opacity:.5}
+.roadmap-text{font-size:12px}
+.roadmap-tag{margin-left:auto;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+/* CLI */
+.cli-section{max-width:1100px;margin:0 auto;padding:60px 40px}
+.cli-card{background:linear-gradient(135deg,rgba(25,65,141,0.15),rgba(255,118,108,0.05));border:1px solid rgba(25,65,141,0.4);border-radius:18px;padding:40px;position:relative;overflow:hidden}
+.cli-card::before{content:'';position:absolute;top:-60px;right:-60px;width:200px;height:200px;background:radial-gradient(circle,rgba(25,65,141,0.2),transparent 70%)}
+.cli-title{font-family:'League Gothic',sans-serif;font-size:32px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.cli-sub{font-size:13px;color:var(--muted);margin-bottom:28px;max-width:600px;line-height:1.7}
+.prompt-block{background:#000;border:1px solid rgba(255,255,255,0.1);border-radius:12px;overflow:hidden;margin-bottom:24px}
+.prompt-header{background:rgba(255,255,255,0.04);padding:10px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,0.06)}
+.prompt-dot{width:10px;height:10px;border-radius:50%}
+.prompt-title{font-size:11px;color:var(--muted);margin-left:auto;font-family:var(--mono)}
+.prompt-body{padding:20px;font-family:var(--mono);font-size:11.5px;line-height:1.8;color:rgba(255,255,255,0.75);white-space:pre-wrap;max-height:400px;overflow-y:auto}
+.prompt-body::-webkit-scrollbar{width:4px}
+.prompt-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px}
+.btn-row{display:flex;gap:12px;flex-wrap:wrap}
+.btn-primary{display:inline-flex;align-items:center;gap:8px;padding:13px 24px;background:linear-gradient(135deg,var(--cobalt),#0c2e69);border:1px solid rgba(25,65,141,0.5);border-radius:10px;color:#fff;font-family:'Montserrat',sans-serif;font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;transition:all .2s;text-decoration:none}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(25,65,141,0.4)}
+.btn-secondary{display:inline-flex;align-items:center;gap:8px;padding:13px 24px;background:transparent;border:1px solid var(--border);border-radius:10px;color:rgba(255,255,255,0.6);font-family:'Montserrat',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;text-decoration:none}
+.btn-secondary:hover{border-color:rgba(255,255,255,0.3);color:#fff}
+.copied{display:none;font-size:11px;color:var(--vert);margin-top:8px;font-weight:600}
+.copied.show{display:block}
+
+footer{border-top:1px solid var(--border);padding:28px 40px;display:flex;align-items:center;justify-content:space-between}
+.footer-logo{font-family:'League Gothic',sans-serif;font-size:16px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.footer-logo span{color:var(--corail)}
+.footer-note{font-size:11px;color:rgba(255,255,255,0.2)}
+</style>
+</head>
+<body>
+<div class="bg-glow"></div>
+
+<nav>
+  <div class="nav-logo">LA <span>MAISON</span> DU VAPOTEUR</div>
+  <div class="nav-links">
+    <a href="#fonctionnalites">Fonctionnalités</a>
+    <a href="#admin">Interface admin</a>
+    <a href="#etats">États</a>
+    <a href="#technique">Technique</a>
+    <a href="#cli">Développement</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-tag">📺 Afficheur Client Local v1.0</div>
+  <h1>Afficheur<br><span>Local</span><br>Franchisés</h1>
+  <p>Remplace l'afficheur natif Hiboutik par une solution 100% maîtrisée, personnalisable, sans aucune dépendance aux serveurs LMDV.</p>
+  <div class="hero-badges">
+    <span class="badge badge-blue">Node.js local</span>
+    <span class="badge badge-blue">WebSocket</span>
+    <span class="badge badge-green">Zéro serveur externe</span>
+    <span class="badge badge-green">RGPD OK</span>
+    <span class="badge badge-orange">Admin drag & drop</span>
+    <span class="badge badge-orange">Capacitor Android</span>
+  </div>
+</section>
+
+<hr class="sep">
+
+<!-- FONCTIONNALITÉS -->
+<section class="section" id="fonctionnalites">
+  <div class="section-title">Fonctionnalités</div>
+  <div class="section-sub">Ce que fait l'afficheur local vs ac.hiboutik.net</div>
+  <div class="cards">
+    <div class="card">
+      <div class="card-icon">🎟</div>
+      <div class="card-title">Fin de vente automatique</div>
+      <div class="card-desc">QR code reçu numérique + QR code concours pré-rempli avec le numéro de ticket, affichés automatiquement à chaque clôture de vente.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">⏱</div>
+      <div class="card-title">Durée paramétrable</div>
+      <div class="card-desc">Le ticket reste affiché le temps configuré (15s–120s). Retour automatique au mode idle jusqu'à la prochaine vente.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">🎞</div>
+      <div class="card-title">Slideshow ou vidéo</div>
+      <div class="card-desc">Entre les ventes : carousel d'images ou vidéo en boucle. Glisser-déposer depuis le PC local — aucun upload cloud nécessaire.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">⚙️</div>
+      <div class="card-title">Interface admin locale</div>
+      <div class="card-desc">Tout se configure depuis localhost:3000/admin sur le PC. Drag & drop des médias, toggles, sliders. La tablette ne voit que /display.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">🔒</div>
+      <div class="card-title">Données 100% locales</div>
+      <div class="card-desc">Le serveur interroge directement l'API Hiboutik du franchisé. Aucune donnée ne transite par les serveurs LMDV.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">📱</div>
+      <div class="card-title">Anti-veille tablette</div>
+      <div class="card-desc">Screen Wake Lock API (browser) ou wrapper Capacitor Android pour une tablette qui ne s'éteint jamais.</div>
+    </div>
+  </div>
+</section>
+
+<hr class="sep">
+
+<!-- ADMIN INTERFACE -->
+<section class="section" id="admin">
+  <div class="section-title">Interface admin</div>
+  <div class="section-sub">localhost:3000/admin — accessible uniquement depuis le PC local, jamais depuis la tablette</div>
+
+  <div class="admin-mockup">
+    <div class="admin-topbar">
+      <div class="admin-dot" style="background:#ff5f56"></div>
+      <div class="admin-dot" style="background:#ffbd2e"></div>
+      <div class="admin-dot" style="background:#27c93f"></div>
+      <div class="admin-url">localhost:3000/admin</div>
+    </div>
+    <div class="admin-body">
+      <div class="admin-sidebar">
+        <div class="admin-menu-item active">🎞 Médias idle</div>
+        <div class="admin-menu-item">🎟 Affichage vente</div>
+        <div class="admin-menu-item">🏪 Boutique</div>
+        <div class="admin-menu-item">👁 Aperçu live</div>
+        <div style="margin-top:auto;padding:16px 20px;font-size:10px;color:rgba(255,255,255,0.15)">v1.0.0 — actif ✓</div>
+      </div>
+      <div class="admin-content">
+        <div class="admin-section-label">Médias affichés entre les ventes</div>
+
+        <!-- Type selector -->
+        <div style="display:flex;gap:8px;margin-bottom:16px">
+          <div style="padding:6px 14px;background:rgba(25,65,141,0.3);border:1px solid rgba(25,65,141,0.5);border-radius:6px;font-size:11px;font-weight:700;color:#8ab5e5;cursor:pointer">📸 Slideshow</div>
+          <div style="padding:6px 14px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--muted);cursor:pointer">🎬 Vidéo</div>
+        </div>
+
+        <!-- Drop zone -->
+        <div class="drop-zone">
+          <div class="drop-zone-icon">📁</div>
+          <div class="drop-zone-label">Glissez vos images ici</div>
+          <div class="drop-zone-sub">JPG, PNG, WEBP — depuis le bureau ou l'explorateur</div>
+        </div>
+
+        <!-- Media grid -->
+        <div class="media-grid">
+          <div class="media-thumb active-thumb">
+            <div class="media-badge">1</div>
+            <div class="media-del">✕</div>
+            <span style="font-size:9px">concours.jpg</span>
+          </div>
+          <div class="media-thumb active-thumb">
+            <div class="media-badge">2</div>
+            <div class="media-del">✕</div>
+            <span style="font-size:9px">nouveautes.jpg</span>
+          </div>
+          <div class="media-thumb active-thumb">
+            <div class="media-badge">3</div>
+            <div class="media-del">✕</div>
+            <span style="font-size:9px">promo-ete.jpg</span>
+          </div>
+          <div class="media-thumb" style="border-style:dashed;font-size:20px;color:rgba(255,255,255,0.15)">+</div>
+        </div>
+
+        <!-- Slide duration slider -->
+        <div class="slider-row">
+          <div class="slider-top">
+            <span class="slider-label">Durée par slide</span>
+            <span class="slider-val">6 secondes</span>
+          </div>
+          <div class="slider-track"><div class="slider-fill"></div><div class="slider-thumb"></div></div>
+        </div>
+
+        <div style="margin-top:16px;display:flex;gap:8px">
+          <button class="btn-preview">👁 Aperçu sur tablette</button>
+          <button class="btn-save">💾 Enregistrer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cards" style="margin-top:24px">
+    <div class="card">
+      <div class="card-icon">📁</div>
+      <div class="card-title">Drag & drop natif</div>
+      <div class="card-desc">Les fichiers sont sur le même PC que le serveur. Pas d'upload réseau — copie locale instantanée dans le dossier <code style="font-size:10px;color:var(--vert)">media/</code>, quelle que soit la taille.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">🔄</div>
+      <div class="card-title">Rechargement à chaud</div>
+      <div class="card-desc">Chokidar surveille <code style="font-size:10px;color:var(--vert)">config.json</code> et le dossier <code style="font-size:10px;color:var(--vert)">media/</code>. La tablette se met à jour en temps réel dès qu'on valide dans l'admin.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">🎬</div>
+      <div class="card-title">Onglet Affichage vente</div>
+      <div class="card-desc">Toggle ON/OFF concours, durée d'affichage post-vente, URL concours modifiable selon la période. Zéro redémarrage serveur requis.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">👁</div>
+      <div class="card-title">Aperçu live</div>
+      <div class="card-desc">Bouton "Simuler une vente" qui envoie un événement WebSocket fictif à la tablette — pour vérifier le rendu sans faire une vraie transaction.</div>
+    </div>
+  </div>
+</section>
+
+<hr class="sep">
+
+<!-- ÉTATS -->
+<section class="section" id="etats">
+  <div class="section-title">États de l'afficheur</div>
+  <div class="section-sub">Cycle de vie automatique à chaque transaction</div>
+  <div class="states">
+    <div class="state-block">
+      <div class="state-label">État 1</div>
+      <div class="state-name">⬜ Idle</div>
+      <div class="state-items">Slideshow images<br>OU vidéo boucle<br>Message d'accueil<br>Horloge temps réel</div>
+    </div>
+    <div class="state-block" style="background:rgba(25,65,141,0.08)">
+      <div class="state-label">Détection</div>
+      <div class="state-name">🔔 Vente clôturée</div>
+      <div class="state-items">Nouveau sale_id<br>via poll API (≤3s)<br>WebSocket broadcast<br>vers tablette</div>
+    </div>
+    <div class="state-block" style="background:rgba(168,212,176,0.05)">
+      <div class="state-label">État 2 — configurable</div>
+      <div class="state-name">✅ Ticket affiché</div>
+      <div class="state-items">QR → reçu myrecei.pt<br>#36457 | 2026-06-2-151<br>QR → concours LMDV<br>ticket pré-rempli<br>Total + paiement</div>
+    </div>
+    <div class="state-block">
+      <div class="state-label">Après timer</div>
+      <div class="state-name">↩ Retour idle</div>
+      <div class="state-items">Transition CSS<br>Retour slideshow<br>Attente prochaine<br>vente</div>
+    </div>
+  </div>
+</section>
+
+<hr class="sep">
+
+<!-- TECHNIQUE -->
+<section class="section" id="technique">
+  <div class="section-title">Stack technique</div>
+  <div class="section-sub">Tout en local, Node.js minimal, zéro framework lourd</div>
+  <table class="stack-table">
+    <tr><th>Composant</th><th>Technologie</th><th>Rôle</th></tr>
+    <tr><td>Serveur</td><td class="td-tech">Node.js 18+ / Express</td><td style="font-size:12px;color:var(--muted)">Proxy API + WebSocket + fichiers statiques + admin API</td></tr>
+    <tr><td>Temps réel</td><td class="td-tech">ws (WebSocket natif)</td><td style="font-size:12px;color:var(--muted)">Push événements vente vers la tablette</td></tr>
+    <tr><td>Display</td><td class="td-tech">HTML5 + CSS3 + Vanilla JS</td><td style="font-size:12px;color:var(--muted)">Interface tablette — états, transitions, Wake Lock</td></tr>
+    <tr><td>Admin</td><td class="td-tech">HTML5 + CSS3 + Vanilla JS</td><td style="font-size:12px;color:var(--muted)">Interface config — drag & drop, sliders, toggles</td></tr>
+    <tr><td>Config</td><td class="td-tech">config.json + chokidar</td><td style="font-size:12px;color:var(--muted)">Rechargement à chaud sans restart serveur</td></tr>
+    <tr><td>Upload médias</td><td class="td-tech">Multer (Express middleware)</td><td style="font-size:12px;color:var(--muted)">Réception des fichiers drag & drop depuis admin</td></tr>
+    <tr><td>Anti-veille</td><td class="td-tech">Screen Wake Lock API</td><td style="font-size:12px;color:var(--muted)">Empêche la mise en veille sur Chrome 84+</td></tr>
+    <tr><td>Wrapper natif</td><td class="td-tech">Capacitor + @capacitor/keep-awake</td><td style="font-size:12px;color:var(--muted)">App Android kiosque — v1.1</td></tr>
+  </table>
+
+  <div style="margin-top:32px">
+    <div class="section-title" style="font-size:22px">Structure projet</div>
+    <div class="code-block">
+<span class="c-comment">lmdv-afficheur/</span>
+├── <span class="c-key">server.js</span>              <span class="c-comment">← Express + WebSocket + polling + admin API</span>
+├── <span class="c-key">config.json</span>            <span class="c-comment">← paramètres (gitignored pour les credentials)</span>
+├── <span class="c-key">package.json</span>
+│
+├── <span class="c-key">public/</span>
+│   ├── <span class="c-val">display.html</span>       <span class="c-comment">← tablette : états idle / vente / transition</span>
+│   ├── <span class="c-val">admin.html</span>         <span class="c-comment">← PC : config drag&drop, sliders, toggles</span>
+│   ├── <span class="c-key">css/</span>
+│   │   ├── <span class="c-val">display.css</span>    <span class="c-comment">← styles plein écran tablette</span>
+│   │   └── <span class="c-val">admin.css</span>      <span class="c-comment">← styles interface admin</span>
+│   ├── <span class="c-key">js/</span>
+│   │   ├── <span class="c-val">display.js</span>     <span class="c-comment">← WebSocket client + WakeLock + transitions</span>
+│   │   └── <span class="c-val">admin.js</span>       <span class="c-comment">← drag&drop + fetch API admin + preview</span>
+│   └── <span class="c-key">media/</span>             <span class="c-comment">← images et vidéos (uploads via admin)</span>
+│
+└── <span class="c-key">capacitor/</span>             <span class="c-comment">← wrapper Android (optionnel v1.1)</span>
+    </div>
+  </div>
+
+  <div style="margin-top:32px">
+    <div class="section-title" style="font-size:22px">Endpoints server.js</div>
+    <div class="code-block">
+<span class="c-comment">Display</span>
+GET  /display           <span class="c-comment">← page tablette</span>
+WS   /ws                <span class="c-comment">← WebSocket push events</span>
+
+<span class="c-comment">Admin</span>
+GET  /admin             <span class="c-comment">← interface admin</span>
+GET  /api/config        <span class="c-comment">← lire config actuelle (sans credentials)</span>
+POST /api/config        <span class="c-comment">← sauvegarder config (déclenche chokidar reload)</span>
+POST /api/media/upload  <span class="c-comment">← upload fichier via Multer</span>
+DELETE /api/media/:file <span class="c-comment">← supprimer un média</span>
+GET  /api/media         <span class="c-comment">← liste des fichiers dans media/</span>
+POST /api/preview       <span class="c-comment">← simuler une vente (broadcast WebSocket test)</span>
+GET  /api/status        <span class="c-comment">← statut serveur + dernière vente détectée</span>
+    </div>
+  </div>
+</section>
+
+<hr class="sep">
+
+<!-- ROADMAP -->
+<section class="section">
+  <div class="section-title">Roadmap</div>
+  <div class="roadmap">
+    <div class="roadmap-item"><div class="roadmap-status status-done"></div><div class="roadmap-text">Polling API Hiboutik + détection nouvelle vente (3s)</div><div class="roadmap-tag">v1.0</div></div>
+    <div class="roadmap-item"><div class="roadmap-status status-done"></div><div class="roadmap-text">WebSocket local + push display tablette</div><div class="roadmap-tag">v1.0</div></div>
+    <div class="roadmap-item"><div class="roadmap-status status-done"></div><div class="roadmap-text">Display : états idle / vente / transition avec timer</div><div class="roadmap-tag">v1.0</div></div>
+    <div class="roadmap-item"><div class="roadmap-status status-done"></div><div class="roadmap-text">Admin : drag & drop médias + sliders + toggles</div><div class="roadmap-tag">v1.0</div></div>
+    <div class="roadmap-item"><div class="roadmap-status status-done"></div><div class="roadmap-text">Admin : bouton "Simuler une vente" (aperçu live tablette)</div><div class="roadmap-tag">v1.0</div></div>
+    <div class="roadmap-item"><div class="roadmap-status status-done"></div><div class="roadmap-text">Screen Wake Lock API anti-veille navigateur</div><div class="roadmap-tag">v1.0</div></div>
+    <div class="roadmap-item"><div class="roadmap-status status-done"></div><div class="roadmap-text">config.json rechargement à chaud via chokidar</div><div class="roadmap-tag">v1.0</div></div>
+    <div class="roadmap-item"><div class="roadmap-status status-todo"></div><div class="roadmap-text">Wrapper Capacitor Android + @capacitor/keep-awake + kiosque</div><div class="roadmap-tag">v1.1</div></div>
+    <div class="roadmap-item"><div class="roadmap-status status-todo"></div><div class="roadmap-text">Thèmes visuels multiples (Standard / Concours / Noël)</div><div class="roadmap-tag">v1.2</div></div>
+    <div class="roadmap-item"><div class="roadmap-status status-optional"></div><div class="roadmap-text">Mode temps réel produit/produit (Cloudflare Tunnel + webhooks)</div><div class="roadmap-tag">v2.0</div></div>
+  </div>
+</section>
+
+<hr class="sep">
+
+<!-- CLI -->
+<section class="cli-section" id="cli">
+  <div class="cli-card">
+    <div class="cli-title">🤖 Lancer la session de développement</div>
+    <div class="cli-sub">Copiez ce prompt dans Claude Code pour générer l'intégralité du projet — serveur, display, interface admin avec drag & drop, et toute la logique de config.</div>
+
+    <div class="prompt-block">
+      <div class="prompt-header">
+        <div class="prompt-dot" style="background:#ff5f56"></div>
+        <div class="prompt-dot" style="background:#ffbd2e"></div>
+        <div class="prompt-dot" style="background:#27c93f"></div>
+        <div class="prompt-title">prompt Claude Code — coller dans le terminal</div>
+      </div>
+      <div class="prompt-body" id="promptText">
+# LMDV Afficheur Local — Session de développement Claude Code
+
+## Contexte projet
+Tu développes "LMDV Afficheur Local", une application d'afficheur client de caisse pour les boutiques franchisées La Maison du Vapoteur. Ce projet remplace l'afficheur natif Hiboutik (ac.hiboutik.net) par une solution 100% locale et personnalisable.
+
+## Décisions d'architecture (non négociables)
+- Polling (pas de webhook) : le serveur interroge GET /sales/ toutes les 3 secondes
+- Détection par comparaison de sale_id (lastSaleId vs nouvelle réponse)
+- WebSocket local ws://localhost:PORT pour pousser les événements vers la tablette
+- Admin sur /admin accessible uniquement depuis localhost (le PC du gérant)
+- Tablette accède uniquement à /display — jamais à /admin
+- config.json surveillé par chokidar → rechargement à chaud sans restart
+- Zéro framework front (Vanilla JS uniquement côté client)
+- Zéro dépendance aux serveurs LMDV
+
+## Stack
+- Node.js 18+ + Express + ws + multer + chokidar + node-fetch
+- HTML5 / CSS3 / Vanilla JS côté client (display ET admin)
+- Screen Wake Lock API dans display.js
+
+## Fichiers à créer
+
+### server.js
+Serveur Express complet avec :
+- Polling Hiboutik : GET https://{account}.hiboutik.com/api/sales/?store_id={store_id}
+  Auth : Authorization: Basic base64(email:api_key)
+  Normalisation : Array.isArray(data) ? data[0] : data
+  Trier par completed_at DESC, garder le plus récent, comparer avec lastSaleId
+  Si nouveau → broadcast JSON {type:'sale_closed', sale} à tous les WS clients
+- WebSocket server sur même port (/ws)
+- Serve public/ en statique
+- Admin API endpoints :
+  GET  /api/config            → retourner config sans hiboutik.api_key
+  POST /api/config            → sauvegarder config.json (chokidar recharge auto)
+  POST /api/media/upload      → Multer single file → sauvegarder dans public/media/
+  DELETE /api/media/:filename → supprimer public/media/{filename}
+  GET  /api/media             → lister public/media/ (jpg, png, webp, mp4, webm)
+  POST /api/preview           → broadcast WS {type:'sale_closed', sale: FAKE_SALE}
+  GET  /api/status            → {polling: true, lastSaleId, connectedClients, uptime}
+- Chokidar watch config.json → recharger la config en mémoire sans restart
+- Gestion d'erreur robuste : si API Hiboutik indisponible, logger et continuer le polling
+
+### public/display.html + css/display.css + js/display.js
+Page afficheur tablette avec 3 états :
+
+ÉTAT IDLE :
+- Plein écran, fond sombre (#05090f ou config couleur)
+- Carousel d'images (config.media.items) avec transition CSS fade/slide
+  OU vidéo HTML5 autoplay loop muted (config.media.video_path)
+- Texte d'accueil centré (config.display.idle_message)
+- Horloge HH:MM:SS en haut à droite
+
+ÉTAT VENTE (déclenché par WS sale_closed) :
+- Animation d'entrée (slide up ou fade)
+- Layout 2 colonnes :
+  Gauche : QR code → URL myrecei.pt du ticket
+    Généré via https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=URL_ENCODEE
+    Si sale.qr_code disponible, utiliser cette URL, sinon construire depuis sale_id
+    Numéro ticket visible : "#{sale.sale_id}"
+    Si sale.unique_sale_id : afficher aussi le format 2026-06-2-151
+  Droite (si config.display.show_concours_block) :
+    QR code → {config.display.concours_url}?ticket={sale.sale_id}
+    Label "Participez au concours !"
+    Couleurs LMDV : #FF766C (corail), #003D94 (cobalt), #1C2135 (fond)
+- Footer : total TTC + mode de paiement
+- Timer : après config.display.sale_duration_seconds → transition retour IDLE
+
+RECONNEXION WS :
+- Si WS déconnecté, retry toutes les 3 secondes
+- Indicateur de connexion discret (point vert/rouge en bas de page)
+
+WAKE LOCK :
+- navigator.wakeLock.request('screen') au chargement
+- Re-request sur document visibilitychange (revient au premier plan)
+- Catch silencieux si non supporté
+
+Paramètre URL ?preview=true : simuler une vente fictive au chargement (pour test sans serveur)
+
+### public/admin.html + css/admin.css + js/admin.js
+Interface admin sur /admin avec sidebar + 4 onglets :
+
+SIDEBAR :
+- Logo LMDV, liens vers les 4 onglets
+- Indicateur statut serveur (polling actif, nb clients WS connectés)
+
+ONGLET 1 — Médias idle :
+- Sélecteur type : "Slideshow" ou "Vidéo" (boutons toggle)
+- Mode Slideshow :
+  Zone drag & drop (dragover/drop events) qui envoie POST /api/media/upload
+  Barre de progression pendant l'upload
+  Grille des médias uploadés avec numéro d'ordre, bouton supprimer (DELETE /api/media/:file)
+  Drag pour réordonner la liste (drag and drop natif sur les items)
+  Slider "Durée par slide" (2s–15s)
+- Mode Vidéo :
+  Zone drag & drop pour uploader un .mp4 ou .webm
+  Aperçu du fichier sélectionné
+- Bouton "Enregistrer" → POST /api/config
+- Bouton "Aperçu sur tablette" → POST /api/preview
+
+ONGLET 2 — Affichage vente :
+- Toggle ON/OFF "Bloc concours" (show_concours_block)
+- Input URL concours (modifiable sans redémarrage)
+- Slider "Durée d'affichage" (15s–120s, step 5s) avec valeur en direct
+- Bouton "Simuler une vente" → POST /api/preview
+- Bouton "Enregistrer"
+
+ONGLET 3 — Boutique :
+- Input account Hiboutik
+- Input email
+- Input clé API (type=password, bouton show/hide)
+- Input store_id
+- Input port serveur
+- Bouton "Tester la connexion" → vérifie GET /sales/ et affiche OK/Erreur
+- Bouton "Enregistrer"
+
+ONGLET 4 — Aperçu :
+- Iframe pointant sur /display?preview=true
+- Bouton "Simuler une vente" sur la page admin qui envoie POST /api/preview
+  → le display dans l'iframe reçoit le WS et affiche l'état vente
+
+Design admin :
+- Fond #05090f, card #0b1420, couleurs LMDV
+- Font Montserrat (Google Fonts)
+- Sobre et professionnel, pas de fioritures
+
+### config.example.json
+{
+  "hiboutik": {
+    "account": "moncomptehiboutik",
+    "email": "gerant@franchise.fr",
+    "api_key": "VOTRE_CLE_API",
+    "store_id": 1
+  },
+  "display": {
+    "sale_duration_seconds": 45,
+    "poll_interval_ms": 3000,
+    "idle_message": "Bienvenue à La Maison du Vapoteur",
+    "concours_url": "https://lmdv-concours.vercel.app",
+    "show_concours_block": true
+  },
+  "media": {
+    "type": "slideshow",
+    "items": [],
+    "slide_duration_seconds": 6,
+    "video_path": ""
+  },
+  "server": {
+    "port": 3000
+  }
+}
+
+### package.json
+{
+  "name": "lmdv-afficheur-local",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "chokidar": "^3.5.3",
+    "express": "^4.18.2",
+    "multer": "^1.4.5-lts.1",
+    "node-fetch": "^3.3.2",
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
+
+### README.md (court)
+Installation en 5 étapes, accès tablette, lien vers /admin
+
+## Qualité attendue
+- Aucun TODO non résolu dans le code livré
+- Gestion d'erreur sur tous les appels réseau (try/catch)
+- CSS responsive paysage 1280x800 (tablette 10")
+- Transitions CSS fluides entre états (pas de JS setInterval pour les animations)
+- Console logs horodatés pour faciliter le debug franchisé
+- Le serveur ne crashe jamais même si Hiboutik est temporairement inaccessible
+
+## Livraison
+Crée tous les fichiers, lance npm install, vérifie que node server.js démarre sans erreur.
+Si config.json n'existe pas, le serveur crée automatiquement une copie de config.example.json au démarrage avec un message dans la console.
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-primary" onclick="copyPrompt()">📋 Copier le prompt Claude Code</button>
+      <a class="btn-secondary" href="LMDV-AFFICHEUR-LOCAL.md" download>📄 Doc .md</a>
+    </div>
+    <div class="copied" id="copiedMsg">✅ Prompt copié — collez-le dans claude (CLI) ou Claude Code</div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-logo">LA <span>MAISON</span> DU VAPOTEUR</div>
+  <div class="footer-note">Afficheur Local v1.0 — Usage interne franchisés — 2026</div>
+</footer>
+
+<script>
+function copyPrompt() {
+  const text = document.getElementById('promptText').innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const msg = document.getElementById('copiedMsg');
+    msg.classList.add('show');
+    setTimeout(() => msg.classList.remove('show'), 3000);
+  });
+}
+</script>
+</body>
+</html>

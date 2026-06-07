@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LMDV — Afficheur</title>
+  <link rel="stylesheet" href="/css/display.css">
+</head>
+<body class="state-idle">
+
+  <!-- Indicateur connexion WS -->
+  <div id="ws-status" class="ws-indicator" title="Connexion serveur"></div>
+
+  <!-- Horloge -->
+  <div id="clock" class="clock"></div>
+
+  <!-- ETAT IDLE -->
+  <section id="idle-screen" class="screen screen-idle">
+    <div id="carousel" class="carousel"></div>
+    <video id="idle-video" class="idle-video" autoplay loop muted playsinline></video>
+    <div class="idle-overlay">
+      <p id="idle-message" class="idle-message"></p>
+    </div>
+  </section>
+
+  <!-- ETAT VENTE -->
+  <section id="sale-screen" class="screen screen-sale">
+    <div class="sale-header">
+      <span class="sale-label">Votre ticket</span>
+      <span id="sale-id" class="sale-id"></span>
+    </div>
+
+    <div class="sale-body">
+      <!-- Colonne gauche : ticket QR -->
+      <div class="sale-col col-ticket">
+        <div class="qr-wrapper">
+          <img id="qr-ticket" class="qr-img" alt="QR ticket" src="" />
+        </div>
+        <p class="qr-hint">Scannez pour voir votre ticket</p>
+        <p id="sale-unique-id" class="sale-unique-id"></p>
+      </div>
+
+      <!-- Colonne droite : concours -->
+      <div id="col-concours" class="sale-col col-concours">
+        <div class="concours-badge">Tentez votre chance !</div>
+        <div class="qr-wrapper">
+          <img id="qr-concours" class="qr-img" alt="QR concours" src="" />
+        </div>
+        <p class="concours-label">Participez au concours !</p>
+      </div>
+    </div>
+
+    <div class="sale-footer">
+      <div class="footer-total">
+        <span class="footer-label">Total TTC</span>
+        <span id="sale-total" class="footer-value"></span>
+      </div>
+      <div class="footer-payment">
+        <span class="footer-label">Paiement</span>
+        <span id="sale-payment" class="footer-value"></span>
+      </div>
+    </div>
+
+    <!-- Barre de progression retour idle -->
+    <div class="sale-timer-bar">
+      <div id="timer-progress" class="timer-progress"></div>
+    </div>
+  </section>
+
+  <script src="/js/display.js"></script>
+</body>
+</html>

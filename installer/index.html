@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LMDV Afficheur — Installation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --coral: #FF766C;
+      --cobalt: #003D94;
+      --dark: #05090f;
+      --dark2: #0b1420;
+      --dark3: #1C2135;
+      --border: rgba(255,255,255,0.08);
+      --text: #e8edf8;
+      --text-dim: #6a7a9a;
+    }
+    html { min-height: 100%; }
+    body {
+      min-height: 100vh;
+      background: var(--dark);
+      color: var(--text);
+      font-family: 'Montserrat', system-ui, sans-serif;
+      font-size: 15px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 20px;
+    }
+
+    .logo { margin-bottom: 36px; text-align: center; }
+    .logo-title {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: var(--coral);
+    }
+    .logo-sub {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 560px;
+      background: var(--dark2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 36px 40px;
+    }
+
+    /* Étapes */
+    .steps {
+      display: flex;
+      gap: 0;
+      margin-bottom: 36px;
+      position: relative;
+    }
+    .steps::before {
+      content: '';
+      position: absolute;
+      top: 14px;
+      left: calc(100% / 6);
+      right: calc(100% / 6);
+      height: 2px;
+      background: var(--border);
+    }
+    .step {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      position: relative;
+      z-index: 1;
+    }
+    .step-dot {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--dark3);
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--text-dim);
+      transition: all 0.3s;
+    }
+    .step.active .step-dot, .step.done .step-dot {
+      background: var(--coral);
+      border-color: var(--coral);
+      color: #fff;
+    }
+    .step-label {
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+      text-align: center;
+    }
+    .step.active .step-label { color: var(--coral); }
+
+    h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .desc {
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      margin-bottom: 28px;
+      line-height: 1.5;
+    }
+
+    .field { margin-bottom: 18px; }
+    .field label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 7px;
+    }
+    .field input {
+      width: 100%;
+      background: var(--dark3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 11px 14px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.88rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .field input:focus { border-color: var(--coral); }
+    .field input::placeholder { color: var(--text-dim); }
+    .field input.error { border-color: #e74c3c; }
+
+    .field-row-inline {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .input-eye {
+      position: relative;
+    }
+    .input-eye input { padding-right: 44px; }
+    .input-eye button {
+      position: absolute;
+      right: 10px; top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 4px;
+    }
+
+    .test-btn {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      border-radius: 8px;
+      padding: 10px;
+      font-family: inherit;
+      font-size: 0.82rem;
+      cursor: pointer;
+      margin-bottom: 16px;
+      transition: all 0.2s;
+    }
+    .test-btn:hover { border-color: rgba(255,255,255,0.15); color: var(--text); }
+
+    .test-result {
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      margin-bottom: 20px;
+      display: none;
+    }
+    .test-result.ok { background: rgba(46,204,113,0.1); border: 1px solid rgba(46,204,113,0.3); color: #2ecc71; display: block; }
+    .test-result.error { background: rgba(231,76,60,0.1); border: 1px solid rgba(231,76,60,0.3); color: #e74c3c; display: block; }
+
+    .btn-generate {
+      width: 100%;
+      background: var(--coral);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 14px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn-generate:hover { opacity: 0.9; }
+    .btn-generate:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .success-block {
+      display: none;
+      text-align: center;
+    }
+    .success-block.visible { display: block; }
+    .success-icon { font-size: 3rem; margin-bottom: 16px; }
+    .success-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; }
+    .success-desc { font-size: 0.82rem; color: var(--text-dim); line-height: 1.6; }
+
+    .instruction-box {
+      background: var(--dark3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px 22px;
+      margin-top: 20px;
+      text-align: left;
+    }
+    .instruction-box ol {
+      list-style: none;
+      counter-reset: steps;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .instruction-box li {
+      counter-increment: steps;
+      display: flex;
+      gap: 12px;
+      font-size: 0.83rem;
+      line-height: 1.5;
+    }
+    .instruction-box li::before {
+      content: counter(steps);
+      width: 22px; height: 22px;
+      background: var(--coral);
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .instruction-box code {
+      background: rgba(255,255,255,0.07);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-family: monospace;
+    }
+
+    .footer-note {
+      margin-top: 28px;
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <div class="logo">
+    <div class="logo-title">LMDV</div>
+    <div class="logo-sub">Afficheur Client — Installation</div>
+  </div>
+
+  <div class="card">
+
+    <!-- Étapes -->
+    <div class="steps">
+      <div class="step active" id="step-1">
+        <div class="step-dot">1</div>
+        <div class="step-label">Identifiants</div>
+      </div>
+      <div class="step" id="step-2">
+        <div class="step-dot">2</div>
+        <div class="step-label">Test</div>
+      </div>
+      <div class="step" id="step-3">
+        <div class="step-dot">3</div>
+        <div class="step-label">Téléchargement</div>
+      </div>
+    </div>
+
+    <!-- Formulaire -->
+    <div id="form-block">
+      <h2>Configurez votre afficheur</h2>
+      <p class="desc">Renseignez les informations de votre boutique Hiboutik. Le script généré installera tout automatiquement sur le PC Windows de votre caisse.</p>
+
+      <div class="field">
+        <label>Compte Hiboutik</label>
+        <input type="text" id="f-account" placeholder="moncompte" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label>Adresse email Hiboutik</label>
+        <input type="email" id="f-email" placeholder="gerant@franchise.fr">
+      </div>
+
+      <div class="field">
+        <label>Clé API Hiboutik</label>
+        <div class="input-eye">
+          <input type="password" id="f-apikey" placeholder="Votre clé API">
+          <button onclick="toggleKey()" title="Afficher">👁</button>
+        </div>
+      </div>
+
+      <div class="field-row-inline">
+        <div class="field">
+          <label>Store ID</label>
+          <input type="number" id="f-storeid" placeholder="1" min="1" value="1">
+        </div>
+        <div class="field">
+          <label>Port serveur</label>
+          <input type="number" id="f-port" placeholder="3000" min="1024" max="65535" value="3000">
+        </div>
+      </div>
+
+      <button class="test-btn" id="btn-test" onclick="testConnection()">
+        Tester la connexion Hiboutik avant de continuer
+      </button>
+      <div id="test-result" class="test-result"></div>
+
+      <button class="btn-generate" id="btn-generate" onclick="generateInstaller()">
+        Générer mon installeur Windows (.ps1)
+      </button>
+    </div>
+
+    <!-- Succès -->
+    <div id="success-block" class="success-block">
+      <div class="success-icon">✅</div>
+      <div class="success-title">Votre installeur est prêt !</div>
+      <div class="success-desc">Le fichier <strong>install-lmdv.ps1</strong> a été téléchargé.</div>
+
+      <div class="instruction-box">
+        <ol>
+          <li>Copiez le fichier sur le PC Windows de votre caisse (clé USB ou email)</li>
+          <li>Sur le PC Windows : clic droit sur le fichier → <code>Exécuter avec PowerShell</code></li>
+          <li>Si un avertissement de sécurité s'affiche, cliquez <strong>Exécuter quand même</strong></li>
+          <li>L'installation est entièrement automatique — comptez 2 à 5 minutes</li>
+          <li>À la fin, l'interface admin s'ouvre automatiquement dans le navigateur</li>
+        </ol>
+      </div>
+
+      <div style="margin-top: 20px;">
+        <button class="btn-generate" onclick="location.reload()">Configurer une autre boutique</button>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="footer-note">
+    La clé API n'est jamais envoyée à un serveur — elle est inscrite directement dans le script local que vous téléchargez.<br>
+    Ce script s'exécute uniquement sur le PC de votre caisse.
+  </p>
+
+  <script>
+    function toggleKey() {
+      const inp = document.getElementById('f-apikey');
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+    }
+
+    function getValues() {
+      return {
+        account: document.getElementById('f-account').value.trim(),
+        email: document.getElementById('f-email').value.trim(),
+        apiKey: document.getElementById('f-apikey').value.trim(),
+        storeId: parseInt(document.getElementById('f-storeid').value) || 1,
+        port: parseInt(document.getElementById('f-port').value) || 3000,
+      };
+    }
+
+    function validate() {
+      const v = getValues();
+      const fields = ['f-account', 'f-email', 'f-apikey', 'f-storeid', 'f-port'];
+      let ok = true;
+      fields.forEach(id => document.getElementById(id).classList.remove('error'));
+      if (!v.account) { document.getElementById('f-account').classList.add('error'); ok = false; }
+      if (!v.email || !v.email.includes('@')) { document.getElementById('f-email').classList.add('error'); ok = false; }
+      if (!v.apiKey) { document.getElementById('f-apikey').classList.add('error'); ok = false; }
+      return ok;
+    }
+
+    async function testConnection() {
+      if (!validate()) return;
+      const v = getValues();
+      const btn = document.getElementById('btn-test');
+      const res = document.getElementById('test-result');
+      btn.innerHTML = '<span class="spinner"></span>Test en cours...';
+      btn.disabled = true;
+      res.className = 'test-result';
+      res.textContent = '';
+
+      try {
+        const auth = btoa(`${v.email}:${v.apiKey}`);
+        const url = `https://${v.account}.hiboutik.com/api/sales/?store_id=${v.storeId}`;
+        const r = await fetch(url, {
+          headers: { Authorization: `Basic ${auth}` },
+          signal: AbortSignal.timeout(8000)
+        });
+        if (r.ok) {
+          res.textContent = 'Connexion reussie ! Vos identifiants sont corrects.';
+          res.className = 'test-result ok';
+          markStep(2);
+        } else {
+          res.textContent = `Echec (HTTP ${r.status}) — verifiez vos identifiants Hiboutik.`;
+          res.className = 'test-result error';
+        }
+      } catch (e) {
+        res.textContent = `Impossible de contacter Hiboutik : ${e.message}`;
+        res.className = 'test-result error';
+      }
+      btn.innerHTML = 'Tester la connexion Hiboutik avant de continuer';
+      btn.disabled = false;
+    }
+
+    function markStep(n) {
+      for (let i = 1; i <= n; i++) {
+        document.getElementById(`step-${i}`)?.classList.add('done');
+        document.getElementById(`step-${i}`)?.classList.remove('active');
+      }
+      const next = document.getElementById(`step-${n + 1}`);
+      if (next) next.classList.add('active');
+    }
+
+    function generateInstaller() {
+      if (!validate()) return;
+      const v = getValues();
+      markStep(3);
+
+      // Générer le script PowerShell avec les valeurs intégrées
+      const ps1 = generatePS1(v);
+      const blob = new Blob([ps1], { type: 'text/plain; charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'install-lmdv.ps1';
+      a.click();
+      URL.revokeObjectURL(url);
+
+      document.getElementById('form-block').style.display = 'none';
+      document.getElementById('success-block').classList.add('visible');
+    }
+
+    function escapePS1(str) {
+      return String(str).replace(/'/g, "''");
+    }
+
+    function generatePS1(v) {
+      const GITHUB_ZIP = 'https://github.com/Salmeronster/lmdv-afficheur-local/archive/refs/heads/main.zip';
+      const INSTALL_DIR = 'C:\\LMDV\\afficheur';
+      const PORT = v.port;
+
+      return `# ============================================================
+# LMDV Afficheur Local — Script d'installation automatique
+# Genere le ${new Date().toLocaleDateString('fr-FR')}
+# Boutique : ${escapePS1(v.account)}.hiboutik.com
+# ============================================================
+# Execution : clic droit -> Executer avec PowerShell (en tant qu'Administrateur)
+# ============================================================
+
+Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
+$ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
+
+function Write-Step { param($msg) Write-Host "[LMDV] $msg" -ForegroundColor Cyan }
+function Write-OK   { param($msg) Write-Host "[OK]   $msg" -ForegroundColor Green }
+function Write-Err  { param($msg) Write-Host "[ERR]  $msg" -ForegroundColor Red }
+
+Write-Host ""
+Write-Host "  ╔══════════════════════════════════════╗" -ForegroundColor Magenta
+Write-Host "  ║   LMDV Afficheur Local — Installeur  ║" -ForegroundColor Magenta
+Write-Host "  ╚══════════════════════════════════════╝" -ForegroundColor Magenta
+Write-Host ""
+
+# --- 1. Verifier/Installer Node.js ---
+Write-Step "Verification de Node.js..."
+$nodeOk = $false
+try {
+    $nodeVer = & node --version 2>$null
+    if ($nodeVer -match 'v(\d+)' -and [int]$Matches[1] -ge 18) {
+        Write-OK "Node.js $nodeVer detecte"
+        $nodeOk = $true
+    }
+} catch {}
+
+if (-not $nodeOk) {
+    Write-Step "Installation de Node.js 20 LTS..."
+    try {
+        $installer = "$env:TEMP\\node-installer.msi"
+        Invoke-WebRequest -Uri 'https://nodejs.org/dist/v20.18.0/node-v20.18.0-x64.msi' -OutFile $installer
+        Start-Process msiexec.exe -ArgumentList "/i `"$installer`" /qn ADDLOCAL=ALL" -Wait -NoNewWindow
+        Remove-Item $installer -Force
+        $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [System.Environment]::GetEnvironmentVariable('Path', 'User')
+        Write-OK "Node.js installe avec succes"
+    } catch {
+        Write-Err "Echec installation Node.js : $_"
+        Write-Host "Installez manuellement depuis https://nodejs.org puis relancez ce script." -ForegroundColor Yellow
+        Read-Host "Appuyez sur Entree pour quitter"
+        exit 1
+    }
+}
+
+# --- 2. Creer le dossier d'installation ---
+Write-Step "Preparation du dossier d'installation : ${INSTALL_DIR}"
+if (-not (Test-Path '${INSTALL_DIR}')) {
+    New-Item -ItemType Directory -Path '${INSTALL_DIR}' -Force | Out-Null
+}
+
+# --- 3. Telecharger et extraire l'application ---
+Write-Step "Telechargement de LMDV Afficheur Local..."
+$zipPath = "$env:TEMP\\lmdv-afficheur.zip"
+try {
+    Invoke-WebRequest -Uri '${GITHUB_ZIP}' -OutFile $zipPath
+    Write-OK "Telechargement termine"
+} catch {
+    Write-Err "Impossible de telecharger l'application : $_"
+    Write-Host "Verifiez votre connexion internet." -ForegroundColor Yellow
+    Read-Host "Appuyez sur Entree pour quitter"
+    exit 1
+}
+
+Write-Step "Extraction..."
+$extractTemp = "$env:TEMP\\lmdv-extract"
+if (Test-Path $extractTemp) { Remove-Item $extractTemp -Recurse -Force }
+Expand-Archive -Path $zipPath -DestinationPath $extractTemp -Force
+$subDir = Get-ChildItem $extractTemp | Where-Object { $_.PSIsContainer } | Select-Object -First 1
+if ($subDir) {
+    Copy-Item "$($subDir.FullName)\\*" -Destination '${INSTALL_DIR}' -Recurse -Force
+} else {
+    Copy-Item "$extractTemp\\*" -Destination '${INSTALL_DIR}' -Recurse -Force
+}
+Remove-Item $zipPath -Force
+Remove-Item $extractTemp -Recurse -Force
+Write-OK "Application extraite dans ${INSTALL_DIR}"
+
+# --- 4. Ecrire config.json ---
+Write-Step "Configuration de la boutique..."
+$configJson = @'
+{
+  "hiboutik": {
+    "account": "${escapePS1(v.account)}",
+    "email": "${escapePS1(v.email)}",
+    "api_key": "${escapePS1(v.apiKey)}",
+    "store_id": ${v.storeId}
+  },
+  "display": {
+    "sale_duration_seconds": 45,
+    "poll_interval_ms": 3000,
+    "idle_message": "Bienvenue a La Maison du Vapoteur",
+    "concours_url": "https://lmdv-concours.vercel.app",
+    "show_concours_block": true
+  },
+  "media": {
+    "type": "slideshow",
+    "items": [],
+    "slide_duration_seconds": 6,
+    "video_path": ""
+  },
+  "server": {
+    "port": ${PORT}
+  }
+}
+'@
+$configJson | Out-File -FilePath '${INSTALL_DIR}\\config.json' -Encoding UTF8 -Force
+Write-OK "config.json cree"
+
+# --- 5. npm install ---
+Write-Step "Installation des dependances Node.js (npm install)..."
+Push-Location '${INSTALL_DIR}'
+try {
+    & npm install --loglevel=error
+    Write-OK "Dependances installees"
+} catch {
+    Write-Err "npm install a echoue : $_"
+    Pop-Location
+    Read-Host "Appuyez sur Entree pour quitter"
+    exit 1
+}
+Pop-Location
+
+# --- 6. Ouvrir le pare-feu Windows ---
+Write-Step "Configuration du pare-feu Windows (port ${PORT})..."
+try {
+    $ruleName = "LMDV Afficheur Local"
+    $existing = Get-NetFirewallRule -DisplayName $ruleName 2>$null
+    if ($existing) { Remove-NetFirewallRule -DisplayName $ruleName }
+    New-NetFirewallRule -DisplayName $ruleName -Direction Inbound -Protocol TCP -LocalPort ${PORT} -Action Allow | Out-Null
+    Write-OK "Regle pare-feu creee (port ${PORT})"
+} catch {
+    Write-Host "[WARN] Impossible de configurer le pare-feu automatiquement." -ForegroundColor Yellow
+    Write-Host "       Autorisez manuellement le port ${PORT} dans le pare-feu Windows." -ForegroundColor Yellow
+}
+
+# --- 7. Creer start.bat ---
+Write-Step "Creation du raccourci de demarrage..."
+$batContent = "@echo off`r`ncd /d `"${INSTALL_DIR}`"`r`necho Demarrage LMDV Afficheur...`r`nnode server.js`r`npause"
+$batContent | Out-File -FilePath '${INSTALL_DIR}\\start.bat' -Encoding ASCII -Force
+
+# Raccourci bureau
+$WshShell = New-Object -comObject WScript.Shell
+$desktopPath = [System.Environment]::GetFolderPath('Desktop')
+$shortcut = $WshShell.CreateShortcut("$desktopPath\\Demarrer Afficheur LMDV.lnk")
+$shortcut.TargetPath = '${INSTALL_DIR}\\start.bat'
+$shortcut.WorkingDirectory = '${INSTALL_DIR}'
+$shortcut.Description = 'LMDV Afficheur Client de Caisse'
+$shortcut.Save()
+Write-OK "Raccourci bureau cree"
+
+# --- 8. Recuperer IP LAN ---
+Write-Step "Detection de l'adresse IP locale..."
+$lanIP = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -notmatch 'Loopback' -and $_.IPAddress -notmatch '^169' } | Select-Object -First 1).IPAddress
+if (-not $lanIP) { $lanIP = "VOTRE-IP-LAN" }
+Write-OK "IP LAN : $lanIP"
+
+# --- 9. Demarrer le serveur ---
+Write-Step "Demarrage du serveur LMDV..."
+Start-Process -FilePath 'cmd.exe' -ArgumentList "/c cd /d `"${INSTALL_DIR}`" && node server.js" -WindowStyle Normal
+
+Start-Sleep -Seconds 3
+
+# Ouvrir l'admin dans le navigateur
+try {
+    Start-Process "http://localhost:${PORT}/admin"
+} catch {}
+
+# --- Resume final ---
+Write-Host ""
+Write-Host "  ╔══════════════════════════════════════════════════════╗" -ForegroundColor Green
+Write-Host "  ║           Installation terminee avec succes !        ║" -ForegroundColor Green
+Write-Host "  ╠══════════════════════════════════════════════════════╣" -ForegroundColor Green
+Write-Host "  ║                                                      ║" -ForegroundColor Green
+Write-Host "  ║  Interface admin  : http://localhost:${PORT}/admin         ║" -ForegroundColor Green
+Write-Host "  ║  Afficheur tablette : http://${lanIP}:${PORT}/display    ║" -ForegroundColor Green
+Write-Host "  ║                                                      ║" -ForegroundColor Green
+Write-Host "  ║  Donnez cette URL a la tablette :                    ║" -ForegroundColor Green
+Write-Host "  ║  http://$($lanIP):${PORT}/display                        ║" -ForegroundColor Yellow
+Write-Host "  ║                                                      ║" -ForegroundColor Green
+Write-Host "  ╚══════════════════════════════════════════════════════╝" -ForegroundColor Green
+Write-Host ""
+Write-Host "  Raccourci de demarrage cree sur le Bureau." -ForegroundColor Cyan
+Write-Host ""
+
+Read-Host "Appuyez sur Entree pour fermer"
+`;
+    }
+  </script>
+</body>
+</html>

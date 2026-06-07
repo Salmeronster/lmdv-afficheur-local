@@ -1,0 +1,24 @@
+{
+  "hiboutik": {
+    "account": "moncomptehiboutik",
+    "email": "gerant@franchise.fr",
+    "api_key": "VOTRE_CLE_API",
+    "store_id": 1
+  },
+  "display": {
+    "sale_duration_seconds": 45,
+    "poll_interval_ms": 3000,
+    "idle_message": "Bienvenue a La Maison du Vapoteur",
+    "concours_url": "https://lmdv-concours.vercel.app",
+    "show_concours_block": true
+  },
+  "media": {
+    "type": "slideshow",
+    "items": [],
+    "slide_duration_seconds": 6,
+    "video_path": ""
+  },
+  "server": {
+    "port": 3000
+  }
+}

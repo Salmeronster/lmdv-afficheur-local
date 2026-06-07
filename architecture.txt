@@ -1,0 +1,326 @@
+# LMDV Afficheur Client Local â€” Documentation Projet
+
+> Afficheur de caisse personnalisÃ©, temps rÃ©el fin de vente, 100% local, zÃ©ro dÃ©pendance serveur LMDV.
+
+---
+
+## Vue d'ensemble
+
+Ce projet remplace l'afficheur natif Hiboutik (`ac.hiboutik.net`) par une solution entiÃ¨rement maÃ®trisÃ©e, s'exÃ©cutant sur le rÃ©seau local de chaque boutique franchisÃ©e. Les donnÃ©es ne transitent Ã  aucun moment par les serveurs LMDV.
+
+### ProblÃ¨mes rÃ©solus vs `ac.hiboutik.net`
+
+| ProblÃ¨me natif | Solution |
+|---|---|
+| Produits qui disparaissent pendant la vente | Ã‰tat persistant maintenu jusqu'Ã  clÃ´ture |
+| Design non personnalisable | 100% HTML/CSS/JS maÃ®trisÃ© |
+| DonnÃ©es transitant par Hiboutik | API locale directe |
+| Impossible d'ajouter le concours LMDV | Bloc QR code concours intÃ©grÃ© |
+| Pas de contenu entre les ventes | Slideshow / vidÃ©o configurable |
+
+---
+
+## Architecture technique
+
+```
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚  RÃ‰SEAU LOCAL FRANCHISÃ‰                             â”‚
+â”‚                                                     â”‚
+â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”    poll 3s     â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”  â”‚
+â”‚  â”‚  API Hiboutikâ”‚â—„â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”‚  server.js    â”‚  â”‚
+â”‚  â”‚  (internet)  â”‚â”€â”€â”€â”€JSONâ”€â”€â”€â”€â”€â”€â”€â”€â”‚  Node.js      â”‚  â”‚
+â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜                â”‚  :3000        â”‚  â”‚
+â”‚                                  â””â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”˜  â”‚
+â”‚                                          â”‚ WebSocket â”‚
+â”‚                                  â”Œâ”€â”€â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”€â”  â”‚
+â”‚                                  â”‚  Tablette     â”‚  â”‚
+â”‚                                  â”‚  /display     â”‚  â”‚
+â”‚                                  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜  â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+```
+
+### Principe de fonctionnement
+
+1. `server.js` interroge l'API Hiboutik toutes les **3 secondes** via `GET /sales/`
+2. Il compare le `sale_id` de la derniÃ¨re vente clÃ´turÃ©e avec celui en mÃ©moire
+3. Si nouveau â†’ diffuse l'Ã©vÃ©nement Ã  tous les clients WebSocket connectÃ©s
+4. La page `/display` reÃ§oit l'Ã©vÃ©nement et met Ã  jour l'affichage instantanÃ©ment
+5. AprÃ¨s la durÃ©e configurÃ©e, retour au mode idle (slideshow / vidÃ©o)
+
+---
+
+## Stack technique
+
+| Composant | Technologie | RÃ´le |
+|---|---|---|
+| Serveur | Node.js 18+ / Express | API proxy + WebSocket server |
+| Temps rÃ©el | WebSocket natif (ws) | Push vers le display |
+| Display | HTML5 / CSS3 / Vanilla JS | Interface tablette |
+| Wrapper natif | Capacitor (Ionic) | App Android/iOS anti-veille |
+| Alternative wrapper | Electron | App desktop Windows/Mac |
+| Anti-veille browser | Screen Wake Lock API | Fallback sans wrapper natif |
+
+---
+
+## Ã‰tats de l'afficheur
+
+```
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”     nouvelle vente      â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚             â”‚â—„â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”‚                     â”‚
+â”‚   IDLE      â”‚                         â”‚   VENTE AFFICHÃ‰E    â”‚
+â”‚  slideshow  â”‚                         â”‚  QR ticket +        â”‚
+â”‚  vidÃ©o loop â”‚                         â”‚  QR concours        â”‚
+â”‚             â”‚â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–ºâ”‚                     â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜   timer Ã©coulÃ© (config) â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+```
+
+### Ã‰tat IDLE
+- Carousel d'images configurables (format paysage 16:9)
+- OU vidÃ©o en boucle (`.mp4`, `.webm`)
+- Message d'accueil personnalisable
+- Horloge en temps rÃ©el
+
+### Ã‰tat VENTE (affichÃ© X secondes)
+- **Bloc gauche** : QR code â†’ `myrecei.pt` (reÃ§u numÃ©rique Hiboutik)
+  - NumÃ©ro de ticket visible : `#36457 | 2026-06-2-151`
+  - DÃ©tail complet de la transaction
+- **Bloc droite** : QR code â†’ `lmdv-concours.vercel.app?ticket=XXXXX`
+  - Ticket prÃ©-rempli dans l'URL
+  - Message d'invitation au concours
+- **Footer** : Total TTC + mode de paiement
+
+---
+
+## Configuration
+
+Fichier `config.json` Ã  la racine :
+
+```json
+{
+  "hiboutik": {
+    "account": "moncompte",
+    "email": "gerant@franchise.fr",
+    "api_key": "XXXXXXXXXXXXX",
+    "store_id": 12
+  },
+  "display": {
+    "sale_duration_seconds": 45,
+    "poll_interval_ms": 3000,
+    "idle_message": "Bienvenue Ã  La Maison du Vapoteur",
+    "concours_url": "https://lmdv-concours.vercel.app",
+    "show_concours_block": true
+  },
+  "media": {
+    "type": "slideshow",
+    "items": [
+      "./media/slide1.jpg",
+      "./media/slide2.jpg",
+      "./media/concours-banner.jpg"
+    ],
+    "slide_duration_seconds": 6,
+    "video_path": "./media/lmdv-promo.mp4"
+  },
+  "server": {
+    "port": 3000
+  }
+}
+```
+
+---
+
+## Structure du projet
+
+```
+lmdv-afficheur/
+â”œâ”€â”€ config.json              â† configuration locale (ne pas commiter les credentials)
+â”œâ”€â”€ server.js                â† serveur Node.js + polling + WebSocket
+â”œâ”€â”€ package.json
+â”œâ”€â”€ package-lock.json
+â”‚
+â”œâ”€â”€ public/
+â”‚   â”œâ”€â”€ index.html           â† redirect vers /display
+â”‚   â”œâ”€â”€ display.html         â† page afficheur principale
+â”‚   â”œâ”€â”€ css/
+â”‚   â”‚   â””â”€â”€ display.css      â† styles tablette
+â”‚   â”œâ”€â”€ js/
+â”‚   â”‚   â””â”€â”€ display.js       â† logique client WebSocket
+â”‚   â””â”€â”€ media/               â† images + vidÃ©os slideshow
+â”‚       â”œâ”€â”€ slide1.jpg
+â”‚       â””â”€â”€ lmdv-promo.mp4
+â”‚
+â”œâ”€â”€ capacitor/               â† wrapper Android (optionnel)
+â”‚   â”œâ”€â”€ android/
+â”‚   â””â”€â”€ capacitor.config.ts
+â”‚
+â””â”€â”€ docs/
+    â””â”€â”€ SETUP.md
+```
+
+---
+
+## DÃ©marrage rapide
+
+### PrÃ©requis
+- Node.js 18+ installÃ© sur le PC de caisse ou un PC du rÃ©seau local
+- AccÃ¨s API Hiboutik de la boutique (email + clÃ© API)
+
+### Installation
+
+```bash
+# 1. Cloner / tÃ©lÃ©charger le projet
+git clone https://github.com/lmdv-france/lmdv-afficheur-local.git
+cd lmdv-afficheur-local
+
+# 2. Installer les dÃ©pendances
+npm install
+
+# 3. Configurer
+cp config.example.json config.json
+# â†’ Ã©diter config.json avec les credentials Hiboutik
+
+# 4. Lancer
+npm start
+
+# â†’ Serveur disponible sur http://localhost:3000
+# â†’ Ouvrir http://localhost:3000/display sur la tablette
+```
+
+### AccÃ¨s depuis la tablette
+
+La tablette et le PC doivent Ãªtre sur le **mÃªme rÃ©seau WiFi**.
+
+```
+# Trouver l'IP locale du PC (terminal macOS)
+ipconfig getifaddr en0
+
+# Sur la tablette : ouvrir Chrome
+http://192.168.1.XXX:3000/display
+```
+
+---
+
+## Wrapper Capacitor (recommandÃ© pour production)
+
+Capacitor permet de crÃ©er une app Android/iOS native qui :
+- **EmpÃªche la mise en veille** de la tablette (`@capacitor/keep-awake`)
+- Lance l'afficheur au **dÃ©marrage automatique**
+- Masque la barre de navigation (**mode kiosque**)
+- GÃ¨re la **rotation Ã©cran** et le **plein Ã©cran**
+
+### Installation Capacitor
+
+```bash
+npm install @capacitor/core @capacitor/cli @capacitor/android
+npm install @capacitor/keep-awake
+npx cap init "LMDV Afficheur" "fr.lmdv.afficheur"
+npx cap add android
+npx cap sync
+```
+
+### Build APK
+
+```bash
+npx cap open android
+# â†’ Android Studio s'ouvre
+# â†’ Build â†’ Generate Signed APK
+# â†’ Installer sur la tablette via ADB ou clÃ© USB
+```
+
+---
+
+## Alternative sans wrapper : Screen Wake Lock API
+
+Pour Ã©viter la mise en veille **sans** Capacitor (solution browser uniquement) :
+
+```javascript
+// Dans display.js â€” empÃªche la veille sur navigateurs modernes
+async function requestWakeLock() {
+  try {
+    const wakeLock = await navigator.wakeLock.request('screen');
+    console.log('Wake Lock actif');
+    document.addEventListener('visibilitychange', async () => {
+      if (document.visibilityState === 'visible') {
+        await navigator.wakeLock.request('screen');
+      }
+    });
+  } catch (err) {
+    console.warn('Wake Lock non supportÃ©:', err);
+  }
+}
+```
+
+CompatibilitÃ© : Chrome 84+, Edge 84+, Samsung Internet 12+. **Non supportÃ© sur iOS Safari.**
+
+---
+
+## Alternative commerciale : Fully Kiosk Browser
+
+Pour Android, [Fully Kiosk Browser](https://www.fully-kiosk.com/) (~15â‚¬/appareil) offre :
+- Mode kiosque clÃ© en main
+- Anti-veille configurable
+- DÃ©marrage automatique
+- Remote management
+- Compatible avec notre page `/display` sans aucune modification
+
+---
+
+## SÃ©curitÃ©
+
+- Les credentials Hiboutik sont stockÃ©s dans `config.json` **en local uniquement**
+- Aucune donnÃ©e ne transite par les serveurs LMDV
+- Le serveur Ã©coute sur `localhost` par dÃ©faut (modifier pour Ã©couter sur le rÃ©seau local)
+- Pour restreindre l'accÃ¨s : ajouter un middleware d'IP whitelist dans `server.js`
+
+---
+
+## Ã‰volutions prÃ©vues
+
+- [ ] Interface d'administration web pour modifier `config.json` sans Ã©diter le fichier
+- [ ] Support `sale_item` (affichage produit par produit) via Cloudflare Tunnel
+- [ ] ThÃ¨mes visuels multiples (Standard LMDV, Concours, NoÃ«l, etc.)
+- [ ] Statistiques journaliÃ¨res en mode idle (nb ventes, CA)
+- [ ] Multi-Ã©crans (plusieurs tablettes sur le mÃªme serveur)
+- [ ] Mode `unique_sale_id` pour afficher le format `2026-06-2-151` plutÃ´t que `36457`
+
+---
+
+## Endpoints serveur
+
+| Route | Description |
+|---|---|
+| `GET /` | Redirect vers `/display` |
+| `GET /display` | Page afficheur principale |
+| `GET /admin` | Interface de configuration (future) |
+| `WS /ws` | WebSocket pour les Ã©vÃ©nements temps rÃ©el |
+| `GET /api/status` | Statut serveur + derniÃ¨re vente |
+| `GET /api/config` | Configuration actuelle (sans credentials) |
+
+---
+
+## DÃ©pendances npm
+
+```json
+{
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.16.0",
+    "node-fetch": "^3.3.2",
+    "chokidar": "^3.5.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^5.0.0"
+  }
+}
+```
+
+---
+
+## Changelog
+
+| Version | Date | Description |
+|---|---|---|
+| 1.0.0 | 2026-06 | Version initiale â€” polling + WebSocket + display fin de vente |
+
+---
+
+*Projet LMDV France â€” Usage interne franchisÃ©s uniquement*
