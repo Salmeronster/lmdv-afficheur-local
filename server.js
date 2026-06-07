@@ -113,6 +113,8 @@ async function pollHiboutik() {
       if (lastSaleId !== null) {
         log('INFO', `Nouvelle vente detectee: #${latest.sale_id}`);
         broadcast({ type: 'sale_closed', sale: latest });
+        // Module concours : MDD + webhook LMDV + email Brevo
+        processConcours(latest, `Basic ${auth}`, account);
       }
       lastSaleId = String(latest.sale_id);
     }
@@ -286,3 +288,125 @@ server.on('error', (err) => {
     process.exit(1);
   }
 });
+
+// ═══════════════════════════════════════════════════════════════
+// MODULE CONCOURS — détection MDD + webhook LMDV + email Brevo
+// ═══════════════════════════════════════════════════════════════
+
+// Détection MDD en cascade pour boutiques franchisées
+// Cascade : 1. EAN dans liste config  2. Nom produit regex
+function detectMdd(items, mddEans = []) {
+  const MDD_PATTERN = /intemporel|cities|vape.?hit/i;
+  return items.some(item => {
+    // Niveau 1 — EAN exact
+    const ean = item.product_barcode || item.barcode || item.ean || '';
+    if (ean && mddEans.length > 0 && mddEans.includes(String(ean))) return true;
+    // Niveau 2 — Nom / modèle produit
+    const name = [item.product_model, item.product_desc, item.product_name, item.label]
+      .filter(Boolean).join(' ');
+    return MDD_PATTERN.test(name);
+  });
+}
+
+async function processConcours(sale, authHeader, account) {
+  const concours = config.concours;
+  if (!concours?.enabled) return;
+
+  const saleId   = String(sale.sale_id);
+  const storeName = concours.store_name || account;
+  const eventSlug = concours.event_slug || 'coupe-du-monde-2026';
+
+  try {
+    // 1. Récupérer les lignes de la vente
+    const itemsRes = await fetch(
+      `https://${account}.hiboutik.com/api/sale_items/${saleId}/`,
+      { headers: { Authorization: authHeader, Accept: 'application/json' },
+        signal: AbortSignal.timeout(8000) }
+    );
+    const rawItems = itemsRes.ok ? await itemsRes.json() : [];
+    const items    = Array.isArray(rawItems) ? rawItems : [];
+
+    // 2. Détection MDD (cascade EAN → nom)
+    const isMdd = detectMdd(items, concours.mdd_eans || []);
+    log('INFO', `Ticket #${saleId} - MDD: ${isMdd} (${items.length} produits)`);
+
+    // 3. Envoyer webhook vers API LMDV (déduplication Supabase)
+    const webhookUrl    = concours.lmdv_webhook_url;
+    const webhookSecret = concours.lmdv_webhook_secret;
+    if (webhookUrl) {
+      await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-webhook-secret': webhookSecret || ''
+        },
+        body: JSON.stringify({
+          ticket_id:  saleId,
+          store_name: storeName,
+          event_slug: eventSlug,
+          is_mdd:     isMdd,
+          source:     'franchise-local'
+        }),
+        signal: AbortSignal.timeout(10000)
+      }).then(r => {
+        if (!r.ok) log('WARN', `Webhook LMDV HTTP ${r.status}`);
+        else        log('INFO', `Webhook LMDV OK - ticket #${saleId} enregistré`);
+      }).catch(e => log('WARN', `Webhook LMDV échec: ${e.message}`));
+    }
+
+    // 4. Récupérer l'email du client
+    const customerId = sale.customer_id;
+    if (!customerId || !concours.brevo_key) return;
+
+    const custRes = await fetch(
+      `https://${account}.hiboutik.com/api/customer/${customerId}/`,
+      { headers: { Authorization: authHeader, Accept: 'application/json' },
+        signal: AbortSignal.timeout(8000) }
+    );
+    if (!custRes.ok) { log('WARN', `Client ${customerId} non trouvé`); return; }
+    const custRaw  = await custRes.json();
+    const customer = Array.isArray(custRaw) ? custRaw[0] : custRaw;
+    const email    = customer?.email;
+    if (!email) { log('INFO', `Ticket #${saleId} - pas d'email client`); return; }
+
+    // 5. Envoyer email Brevo
+    const concoursUrl = concours.concours_url || 'https://lmdv-concours.vercel.app';
+    const inscriptionUrl = `${concoursUrl}?ticket=${saleId}&store=${encodeURIComponent(storeName)}`;
+
+    const emailPayload = {
+      sender: { name: 'La Maison du Vapoteur', email: 'hello@lamaisonduvapoteur.fr' },
+      to: [{ email }],
+      subject: '⚽ Votre ticket pour la Coupe du Vapoteur 2026 !',
+      htmlContent: `
+<div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#1C2135;color:#fff;padding:32px;border-radius:12px">
+  <h1 style="color:#FF766C;font-size:24px;margin-bottom:8px">⚽ La Coupe du Vapoteur 2026</h1>
+  <p style="color:rgba(255,255,255,0.8);margin-bottom:24px">Merci pour votre achat chez <strong>${storeName}</strong> !</p>
+  <div style="background:rgba(255,255,255,0.08);border-radius:8px;padding:20px;text-align:center;margin-bottom:24px">
+    <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:4px">Votre numéro de ticket</div>
+    <div style="font-size:32px;font-weight:bold;color:#fff;letter-spacing:0.1em">#${saleId}</div>
+    ${isMdd ? `<div style="margin-top:12px;background:rgba(255,118,108,0.2);border:1px solid #FF766C;border-radius:6px;padding:8px;font-size:13px;color:#FF766C">⭐ Produit LMDV détecté — vous obtenez <strong>2 participations</strong> !</div>` : ''}
+  </div>
+  <a href="${inscriptionUrl}" style="display:block;background:#FF766C;color:#fff;text-align:center;padding:16px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:16px;margin-bottom:20px">
+    🎯 M'inscrire au concours
+  </a>
+  <p style="font-size:12px;color:rgba(255,255,255,0.4);text-align:center">
+    Votre ticket : #${saleId} — Boutique : ${storeName}<br>
+    Conservez ce numéro pour vous inscrire avant le 19 juillet 2026.
+  </p>
+</div>`
+    };
+
+    await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: { 'api-key': concours.brevo_key, 'Content-Type': 'application/json' },
+      body: JSON.stringify(emailPayload),
+      signal: AbortSignal.timeout(10000)
+    }).then(r => {
+      if (!r.ok) log('WARN', `Brevo HTTP ${r.status}`);
+      else        log('INFO', `Email envoyé à ${email} - ticket #${saleId}`);
+    }).catch(e => log('WARN', `Brevo échec: ${e.message}`));
+
+  } catch (err) {
+    log('WARN', `processConcours erreur: ${err.message}`);
+  }
+}
