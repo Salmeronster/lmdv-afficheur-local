@@ -296,14 +296,24 @@ server.on('error', (err) => {
 // Détection MDD en cascade pour boutiques franchisées
 // Cascade : 1. EAN dans liste config  2. Nom produit regex
 function detectMdd(items, mddEans = []) {
-  const MDD_PATTERN = /intemporel|cities|vape.?hit/i;
+  // Cascade MDD :
+  // Niveau 1 — EAN exact (liste dans config.concours.mdd_eans)
+  // Niveau 2 — Marques : Les Intemporels | Cities | LMDV x Montréal Original | VapeHits | gamme DIY LMDV
+  const MDD_PATTERN = /intemporel|cities|montr[eé]al[\s-]*original|vapehits|vape\s*hits|lmdv/i;
   return items.some(item => {
     // Niveau 1 — EAN exact
-    const ean = item.product_barcode || item.barcode || item.ean || '';
-    if (ean && mddEans.length > 0 && mddEans.includes(String(ean))) return true;
-    // Niveau 2 — Nom / modèle produit
-    const name = [item.product_model, item.product_desc, item.product_name, item.label]
-      .filter(Boolean).join(' ');
+    const ean = String(item.product_barcode || item.barcode || item.ean || '').trim();
+    if (ean && mddEans.length > 0 && mddEans.includes(ean)) return true;
+    // Niveau 2 — Nom, modèle, marque (tous les champs texte disponibles)
+    const name = [
+      item.product_model,
+      item.product_name,
+      item.product_desc,
+      item.products_desc,
+      item.product_brand_name,
+      item.label,
+      item.short_label
+    ].filter(Boolean).join(' ');
     return MDD_PATTERN.test(name);
   });
 }
