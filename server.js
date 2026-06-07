@@ -76,12 +76,17 @@ async function pollHiboutik() {
   const { account, email, api_key, store_id } = config.hiboutik || {};
   if (!account || !email || !api_key || !store_id) return;
 
-  const url = `https://${account}.hiboutik.com/api/sales/?store_id=${store_id}`;
+  // Endpoint correct Hiboutik : /closed_sales/{store_id}/{year}/{month}/{day}
+  const now = new Date();
+  const y = now.getFullYear();
+  const mo = String(now.getMonth() + 1).padStart(2, '0');
+  const dy = String(now.getDate()).padStart(2, '0');
+  const url = `https://${account}.hiboutik.com/api/closed_sales/${store_id}/${y}/${mo}/${dy}`;
   const auth = Buffer.from(`${email}:${api_key}`).toString('base64');
 
   try {
     const res = await fetch(url, {
-      headers: { Authorization: `Basic ${auth}` },
+      headers: { Authorization: `Basic ${auth}`, Accept: 'application/json' },
       signal: AbortSignal.timeout(8000)
     });
 
