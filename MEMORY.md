@@ -84,3 +84,20 @@ lmdv-afficheur-local/
 - Tous ont accès à `ac.hiboutik.net` avec ses limitations connues
 - Notre solution résout : items qui disparaissent, design non maîtrisé, zéro contenu entre ventes
 - Modèle envisagé : SaaS ~15-30€/mois/boutique ou licence one-shot
+## 💡 Potentiel commercial — HibouView
+
+**Noms de domaine achetés le 07/06/2026 :**
+- hibouview.fr ✅
+- hibouview.com ✅
+- hibouview.net ✅
+
+**Marché cible :** ~20 000 comptes Hiboutik en France/Europe
+- Tous ont accès à `ac.hiboutik.net` avec ses limitations connues
+- Notre solution résout : items qui disparaissent, design non maîtrisé, zéro contenu entre ventes
+- Modèle envisagé : SaaS ~15-30€/mois/boutique ou licence one-shot
+
+**À faire pour la commercialisation :**
+- [ ] Landing page hibouview.fr
+- [ ] Séparer version LMDV-concours de la version générique HibouView
+- [ ] Décider modèle distribution (ZIP + installeur vs SaaS hébergé)
+- [ ] Tester sur Parallels Windows 11 avant tout déploiement
